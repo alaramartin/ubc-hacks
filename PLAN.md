@@ -59,9 +59,9 @@ Everyone: public GitHub repo with setup instructions, working demo, 2 to 3 minut
 | `model/` | A | Python: wallet behaviour simulator, MLP training, ONNX export, EZKL pipeline, artifact output |
 | `seller/` | A | Python FastAPI seller: x402 responses, proving, `open`/`fulfill` transactions, `--mode` cheat modes |
 | `contracts/` | B | Foundry: `HonestEscrow.sol`, generated EZKL `Verifier.sol`, tests, deploy script |
-| `indexer/` | B | TS webhook receiver for the Stream, Postgres or SQLite storage, `GET /features/:address?block=N` |
+| `web/` (indexer part) | B | Next.js route handlers on Vercel: `POST /api/streams` (Stream webhook, HMAC-checked) into Neon Postgres, `GET /api/features/:address` |
 | `agent/` | B | TS `honest` CLI: seller discovery, policy, x402 client, verify, challenge, finalize, pay |
-| `web/` | whoever is free first | Next.js receipt page |
+| `web/` (receipts) | whoever is free first | `/r/<jobId>` receipt pages from the Stream-fed index of escrow events, plus chain reads |
 | `scripts/` | A + B | Seeding demo wallets on Arc, registering sellers, demo reset |
 | `deployments/arc-testnet.json` | B writes, everyone reads | Contract addresses, USDC address, chain ID, seller registry. No address literals anywhere else. |
 
@@ -263,6 +263,16 @@ Never cut: real proofs, the 402 flow, escrow plus the onchain challenge and slas
 - Which datasets Streams offers for Arc testnet, and the filter function format
 - Arc's contract size limit and block gas limit
 
+## Changes from the first draft
+
+- The circuit proves the logit, and `risk = sigmoid(logit)` is applied by the reader. Dropping the sigmoid lookup took logrows from 17 to 15 and proving from 14 s to about 3 s.
+- Features are flow-based (spec/features.json) with no wallet age or absolute amounts, and training adds random time compression, because seeded demo histories only span minutes.
+- `fulfill` posts the input preimage, so anyone can re-verify or challenge a job, not only the buyer.
+- The indexer and receipt pages are one Next.js app in `web/`.
+- The index reads Arc's native USDC emitter (`0xff…fe`, 18 decimals) rather than the ERC-20 mirror, per QuickNode's Arc guide.
+- Demo amounts are tiny: bonds 0.5 USDC, slash 0.25, checks 0.005 to 0.01, payments about 0.05.
+
 ## Progress log
 
 - Nov 19: PLAN.md, AGENTS.md and CLAUDE.md written. Nothing built yet.
+- Nov 19, 5 to 9 AM CST: EZKL pipeline, verifier on Arc (735k gas per verify), HonestEscrow with 14 tests, both models trained with shared verifying key, seller with 4 modes, agent CLI, web indexer and receipts (not deployed yet), seeding running. Waiting on: Neon terms, QuickNode account.
