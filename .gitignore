@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+out/
+cache/
+broadcast/
+.next/
+model/artifacts/*/weights*
+model/artifacts/*/pk.key
+*.srs
+.DS_Store
