@@ -12,6 +12,7 @@ Weights files are gitignored; the commitment (Poseidon hash of weights) is what 
 from __future__ import annotations
 
 import json
+import random as _random
 from pathlib import Path
 
 import numpy as np
@@ -29,6 +30,10 @@ def dataset(seeds: range) -> tuple[np.ndarray, np.ndarray, list[str]]:
     xs, ys, roles = [], [], []
     for s in seeds:
         w = make_world(s)
+        # Random time compression so the model does not depend on the absolute timescale of a
+        # history (seeded demo histories are compressed into minutes).
+        c = _random.Random(s).uniform(1.0, 12.0)
+        w.transfers = [(f, t, v, int(ts / c)) for f, t, v, ts in w.transfers]
         tr = w.as_transfers()
         seen = first_seen(tr)
         last_block = tr[-1].block

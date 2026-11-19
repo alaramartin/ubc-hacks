@@ -1,0 +1,24 @@
+[project]
+name = "seller"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "alaramartin", email = "alara.martin@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.165.0",
+    "httpx>=0.28.1",
+    "model",
+    "python-dotenv>=1.2.4",
+    "uvicorn[standard]>=0.54.0",
+    "web3>=8.0.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.17,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+model = { path = "../model", editable = true }

@@ -205,3 +205,28 @@ def make_world(seed: int, scale: int = 1) -> World:
 
 def label(role: str) -> int:
     return 1 if role in RISKY_ROLES else 0
+
+
+def make_demo_world(seed: int, compress: float = 5.0, value_div: int = 4) -> World:
+    """A small world for seeding Arc: one wallet per demo role plus the wallets they need.
+
+    Time gaps are divided by `compress` so seeding finishes in under half an hour, and amounts are
+    divided by `value_div` to keep USDC spend small.
+    """
+    rng = random.Random(seed)
+    w = World(rng)
+    hub = w.wallet()
+    hubs = [hub]
+    customers = [w.wallet() for _ in range(6)]
+    for i, c in enumerate(customers):
+        w.send(hub, c, amount(rng, 20_000, 40_000), i * 20)
+    supplier = w.wallet()
+    base = 400
+    m = merchant(w, base, customers, supplier)
+    merchants = [m]
+    normal_user(w, base + 60, hubs, merchants)
+    drainer(w, base + 900, hubs, customers)
+    launderer(w, base + 1200, hubs)
+    fresh(w, base + 300, hubs)
+    w.transfers = [(f, t, max(1, v // value_div), int(ts / compress)) for f, t, v, ts in w.transfers]
+    return w

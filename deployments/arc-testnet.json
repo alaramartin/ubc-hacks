@@ -1,0 +1,18 @@
+{
+  "network": "arc-testnet",
+  "chainId": 5042002,
+  "rpcEnv": "ARC_RPC_URL",
+  "explorer": "https://testnet.arcscan.app",
+  "usdc": "0x3600000000000000000000000000000000000000",
+  "usdcDecimals": 6,
+  "verifier": "0x89356259d8a2D84D121c00457Cf88908794bAAA9",
+  "escrow": "0xdd5DCc866b37EE3A116E95b4D051AA68f31A60B2",
+  "deployBlock": 73010098,
+  "escrowParams": {
+    "min_bond": 500000,
+    "slash_amount": 250000,
+    "challenge_window": 60,
+    "verify_gas": 3000000
+  },
+  "circuit": "model/artifacts/riskone/settings.json"
+}

@@ -20,3 +20,4 @@ contracts/lib/
 model/artifacts/*/network.onnx
 model/artifacts/*/network.ezkl
 model/artifacts/*/_*/
+.seed/
