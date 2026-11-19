@@ -276,3 +276,4 @@ Never cut: real proofs, the 402 flow, escrow plus the onchain challenge and slas
 
 - Nov 19: PLAN.md, AGENTS.md and CLAUDE.md written. Nothing built yet.
 - Nov 19, 5 to 9 AM CST: EZKL pipeline, verifier on Arc (735k gas per verify), HonestEscrow with 14 tests, both models trained with shared verifying key, seller with 4 modes, agent CLI, web indexer and receipts (not deployed yet), seeding running. Waiting on: Neon terms, QuickNode account.
+- Nov 19, about 10 AM CST: escrow redeployed (fulfill carries the input). Web app live at https://honest-model.vercel.app with Neon. Protocol e2e on Arc passes for all four seller modes: honest verifies; edit-output, swap-model and fake-input are each challenged and slashed (challenge about 755k gas). Seeded demo wallets in deployments/demo-wallets.json. Waiting on: QuickNode account (the Stream is the last missing piece for `honest pay`).
