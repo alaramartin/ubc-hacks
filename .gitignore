@@ -13,3 +13,6 @@ model/artifacts/*/weights*
 model/artifacts/*/pk.key
 *.srs
 .DS_Store
+.srs/
+model/artifacts/spike*/
+contracts/lib/
