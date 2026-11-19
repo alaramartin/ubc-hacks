@@ -92,13 +92,30 @@ async function cmdPay(target: Address, amountStr: string | undefined) {
 }
 
 async function cmdFinalize() {
-  ui.title("honest finalize");
+  ui.title("honest finalize (and refund unanswered jobs)");
   const window = (await publicClient.readContract({ ...escrow, functionName: "challengeWindow" })) as bigint;
   const now = BigInt(Math.floor(Date.now() / 1000));
   let n = 0;
-  for (const j of jobs().filter((j) => j.status === "Fulfilled")) {
+  for (const j of jobs().filter((j) => j.status === "Fulfilled" || j.status === "Open")) {
     const job = await getJob(j.jobId);
     const st = STATUS[job.status];
+    if (st === "None") {
+      recordJob(j.jobId, j.seller, j.address, "NeverOpened");
+      continue;
+    }
+    if (st === "Open") {
+      if (now <= job.deadline) {
+        ui.note(`${ui.short(j.jobId)} unanswered; refundable after ${job.deadline - now}s`);
+        continue;
+      }
+      const hash = await walletClient().writeContract({ ...escrow, functionName: "refund", args: [j.jobId] });
+      await publicClient.waitForTransactionReceipt({ hash, pollingInterval: 250 });
+      recordJob(j.jobId, j.seller, j.address, "Refunded");
+      addSpend(-job.price);
+      ui.ok("refunded", `${ui.short(j.jobId)} ${ui.usdc(job.price)} back from ${ui.addr(job.seller)} (no answer)  tx ${ui.tx(hash)}`);
+      n++;
+      continue;
+    }
     if (st !== "Fulfilled") {
       recordJob(j.jobId, j.seller, j.address, st);
       continue;

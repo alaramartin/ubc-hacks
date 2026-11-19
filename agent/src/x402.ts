@@ -9,6 +9,7 @@ import { getAddress, hashDomain, type Address, type Hex } from "viem";
 import { agentAccount, erc20Abi, escrow, publicClient } from "./chain.ts";
 import { deployment } from "./config.ts";
 import type { SellerView } from "./registry.ts";
+import { recordJob } from "./state.ts";
 
 export const NETWORK = `eip155:${deployment.chainId}`;
 
@@ -154,6 +155,9 @@ export async function buy(
     }),
   ).toString("base64");
 
+  // Remember the job before paying, so a seller that takes the payment and never answers can be
+  // refunded after the deadline (honest finalize).
+  recordJob(req.extra.nonce, seller.address, body.address, "Open");
   const second = await fetch(url, { method: "POST", headers: { ...headers, "x-payment": xPayment }, body: payload });
   if (!second.ok) throw new Error(`seller returned ${second.status}: ${await second.text()}`);
   const answer = (await second.json()) as SellerAnswer;

@@ -14,7 +14,7 @@ import logging
 import math
 import time
 
-from fastapi import FastAPI, Request
+from fastapi import Body, FastAPI, Request
 from fastapi.responses import JSONResponse
 from web3 import Web3
 
@@ -60,9 +60,10 @@ def create_app(chain: Chain, behaviour: Behaviour, name: str) -> FastAPI:
             "slashed": s["slashed"],
         }
 
+    # A plain (sync) handler: FastAPI runs it in a worker thread, where EZKL can start its own
+    # event loop and the blocking chain calls don't stall the server.
     @app.post("/v1/risk")
-    async def risk(request: Request):
-        body = await request.json()
+    def risk(request: Request, body: dict = Body(...)):
         try:
             felts = [int(x) for x in body["input"]]
             address = Web3.to_checksum_address(body["address"])

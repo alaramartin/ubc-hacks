@@ -74,7 +74,12 @@ async function challenge(jobId: Hex, felts: bigint[], proof: Hex) {
  * fails is challenged onchain (refund + slash) and the next seller is tried.
  */
 export async function riskCheck(address: Address): Promise<CheckResult> {
-  const f = await fetchFeatures(address);
+  return riskCheckWith(await fetchFeatures(address));
+}
+
+/** riskCheck with features already in hand (the indexer's answer, or a test vector in tests). */
+export async function riskCheckWith(f: Features): Promise<CheckResult> {
+  const address = f.address;
   const felts = f.features.map((x) => quantize(x, INPUT_SCALE));
   const ih = inputHash(felts);
   ui.step("features", `${f.features.length} features over ${f.transfers} USDC transfers, indexed by our Stream up to block ${f.block.toLocaleString()}`);

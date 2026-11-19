@@ -24,7 +24,8 @@ def main() -> None:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sv = sub.add_parser("serve")
-    sv.add_argument("--key-env", required=True, help="env var holding the seller's private key")
+    sv.add_argument("--key-env", help="env var holding the seller's private key")
+    sv.add_argument("--key-file", help="file holding the seller's private key (from scripts/new-seller.py)")
     sv.add_argument("--model", required=True, help="model artifacts name the seller committed to")
     sv.add_argument("--mode", default="honest")
     sv.add_argument("--swap-model", help="artifacts name of the model swap-model runs instead")
@@ -33,7 +34,8 @@ def main() -> None:
     sv.add_argument("--port", type=int, default=8001)
 
     rg = sub.add_parser("register")
-    rg.add_argument("--key-env", required=True)
+    rg.add_argument("--key-env")
+    rg.add_argument("--key-file")
     rg.add_argument("--model", required=True)
     rg.add_argument("--price", type=int, required=True, help="USDC base units per check")
     rg.add_argument("--bond", type=int, required=True, help="USDC base units")
@@ -45,7 +47,10 @@ def main() -> None:
     from .chain import Chain
     from .prover import Model
 
-    chain = Chain(os.environ[a.key_env])
+    if bool(a.key_env) == bool(a.key_file):
+        p.error("pass exactly one of --key-env or --key-file")
+    key = os.environ[a.key_env] if a.key_env else Path(a.key_file).read_text().strip()
+    chain = Chain(key)
     model = Model(ARTIFACTS / a.model)
 
     if a.cmd == "register":
