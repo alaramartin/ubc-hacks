@@ -1,7 +1,10 @@
 """EZKL pipeline: ONNX model -> settings, compiled circuit, keys, EVM verifier.
 
 Usage:
-    uv run python -m model.ezkl_pipeline <artifacts_dir>
+    uv run python -m model.ezkl_pipeline <artifacts_dir> [--circuit-from <artifacts_dir>]
+
+With --circuit-from, the model reuses another model's settings.json (same architecture, same
+scales and logrows), so both share one verifying key and one onchain verifier.
 
 <artifacts_dir> must contain network.onnx and calibration.json (EZKL input format:
 {"input_data": [[...7 floats...], ...]}). Outputs are written next to them.
@@ -40,7 +43,7 @@ def run_args() -> ezkl.PyRunArgs:
     return ra
 
 
-def build(art: Path) -> dict:
+def build(art: Path, circuit_from: Path | None = None) -> dict:
     onnx = art / "network.onnx"
     settings = art / "settings.json"
     compiled = art / "network.ezkl"
@@ -58,8 +61,11 @@ def build(art: Path) -> dict:
             raise RuntimeError(f"ezkl step {name} returned False")
         return res
 
-    step("gen_settings", ezkl.gen_settings, str(onnx), str(settings), py_run_args=run_args())
-    step("calibrate", ezkl.calibrate_settings, str(cal), str(onnx), str(settings), "resources")
+    if circuit_from is None:
+        step("gen_settings", ezkl.gen_settings, str(onnx), str(settings), py_run_args=run_args())
+        step("calibrate", ezkl.calibrate_settings, str(cal), str(onnx), str(settings), "resources")
+    else:
+        settings.write_text((circuit_from / "settings.json").read_text())
     step("compile", ezkl.compile_circuit, str(onnx), str(compiled), str(settings))
 
     logrows = json.loads(settings.read_text())["run_args"]["logrows"]
@@ -77,7 +83,23 @@ def build(art: Path) -> dict:
         str(art / "Verifier.abi"),
         str(srs),
     )
-    return {"logrows": logrows, "srs": str(srs), "timings": timings}
+    commitment = model_commitment(art)
+    (art / "commitment.json").write_text(json.dumps({"commitment": str(commitment), "hex": hex(commitment)}, indent=2))
+    return {"logrows": logrows, "commitment": hex(commitment), "timings": timings}
+
+
+def model_commitment(art: Path) -> int:
+    """Poseidon hash of the model parameters, as EZKL exposes it in the witness (instance 0)."""
+    settings = json.loads((art / "settings.json").read_text())
+    tmp = art / "_commit"
+    tmp.mkdir(exist_ok=True)
+    zero = tmp / "input.json"
+    zero.write_text(json.dumps({"input_data": [[0.0] * 7]}))
+    _call(ezkl.gen_witness, str(zero), str(art / "network.ezkl"), str(tmp / "witness.json"))
+    w = json.loads((tmp / "witness.json").read_text())
+    h = w["processed_params"]["poseidon_hash"]
+    assert len(h) == 1, f"expected one param hash felt, got {len(h)}"
+    return int.from_bytes(bytes.fromhex(h[0]), "little")
 
 
 def prove(art: Path, input_json: Path, out_dir: Path) -> dict:
@@ -99,4 +121,5 @@ def prove(art: Path, input_json: Path, out_dir: Path) -> dict:
 
 if __name__ == "__main__":
     art = Path(sys.argv[1]).resolve()
-    print(json.dumps(build(art), indent=2))
+    src = Path(sys.argv[sys.argv.index("--circuit-from") + 1]).resolve() if "--circuit-from" in sys.argv else None
+    print(json.dumps(build(art, src), indent=2))

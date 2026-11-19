@@ -27,8 +27,22 @@ class RiskMLP(nn.Module):
         return self.net(x)
 
 
+class Logits(nn.Module):
+    """The proven circuit: the MLP up to the final linear layer. risk = sigmoid(logit) is applied
+    by whoever reads the proven output; it is monotonic, so thresholds can be set on the logit."""
+
+    def __init__(self, m: RiskMLP):
+        super().__init__()
+        self.body = m.net[:-1]
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.body(x)
+
+
 def export_onnx(model: nn.Module, path: Path) -> None:
     model.eval()
+    if isinstance(model, RiskMLP):
+        model = Logits(model)
     dummy = torch.zeros(1, N_FEATURES)
     torch.onnx.export(
         model,

@@ -1,0 +1,12 @@
+{
+  "accuracy": 1.0,
+  "mean_score_by_role": {
+    "drainer": 0.999,
+    "exchange": 0.0,
+    "fresh": 0.0,
+    "launderer": 1.0,
+    "merchant": 0.0,
+    "normal": 0.0,
+    "payroll": 0.0
+  }
+}

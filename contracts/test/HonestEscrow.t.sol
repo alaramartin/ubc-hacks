@@ -34,7 +34,7 @@ contract HonestEscrowTest is Test {
             IUSDC(address(usdc)), IHalo2Verifier(address(verifier)), 7, 1, BOND, SLASH, WINDOW, 3_000_000
         );
 
-        string memory j = vm.readFile("test/fixtures/spike.json");
+        string memory j = vm.readFile("test/fixtures/riskone.json");
         proof = vm.parseJsonBytes(j, ".proof");
         string[] memory s = vm.parseJsonStringArray(j, ".instances");
         commitment = vm.parseUint(s[0]);

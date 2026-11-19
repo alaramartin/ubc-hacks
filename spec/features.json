@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "description": "Risk model input. Computed for one address from USDC Transfer logs at or before a given block. Every implementation (model/src/model/features.py, indexer/src/features.ts) must match spec/vectors.json exactly.",
+  "transfer_fields": {
+    "from": "lowercase 0x address",
+    "to": "lowercase 0x address",
+    "value": "integer USDC base units (6 decimals)",
+    "block": "integer block number",
+    "log_index": "integer log index within the block",
+    "ts": "integer block timestamp in seconds"
+  },
+  "ordering": "Transfers are processed in (block, log_index) order. Self-transfers (from == to) and transfers involving the zero address are ignored everywhere, including first-seen times.",
+  "constants": {
+    "fresh_window_s": 600,
+    "hold_cap_s": 86400
+  },
+  "features": [
+    {
+      "name": "log_transfer_count",
+      "definition": "ln(1 + n), n = number of transfers where the address is from or to"
+    },
+    {
+      "name": "log_unique_counterparties",
+      "definition": "ln(1 + number of distinct counterparties)"
+    },
+    {
+      "name": "out_in_ratio",
+      "definition": "total outflow value / total inflow value, clipped to [0, 2]; 0 if inflow is 0"
+    },
+    {
+      "name": "fan_in",
+      "definition": "distinct senders / number of inflow transfers; 0 if there are no inflows"
+    },
+    {
+      "name": "repeat_share",
+      "definition": "share of the address's transfers whose counterparty already appeared in an earlier transfer of this address; 0 if n is 0"
+    },
+    {
+      "name": "fresh_sender_share",
+      "definition": "share of inflow value sent by senders whose first transfer anywhere (as sender or receiver) happened at most fresh_window_s seconds before this inflow; 0 if inflow is 0"
+    },
+    {
+      "name": "log_median_hold",
+      "definition": "ln(1 + median over outflows of min(hold_cap_s, ts(outflow) - ts(latest inflow at or before it))) / ln(1 + hold_cap_s). Outflows with no earlier inflow count as hold_cap_s. 1 if there are no outflows. Median of an even count is the mean of the two middle values."
+    }
+  ],
+  "quantization": {
+    "scheme": "felt = round_half_even(x * 2^input_scale). All features are non-negative.",
+    "input_scale_source": "model/artifacts/<model>/settings.json run_args.input_scale"
+  }
+}

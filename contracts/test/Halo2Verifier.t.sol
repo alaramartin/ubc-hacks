@@ -4,14 +4,14 @@ pragma solidity ^0.8.24;
 import {Test, console} from "forge-std/Test.sol";
 import {Halo2Verifier} from "../src/Halo2Verifier.sol";
 
-contract SpikeVerifierTest is Test {
+contract Halo2VerifierTest is Test {
     Halo2Verifier v;
     bytes proof;
     uint256[] instances;
 
     function setUp() public {
         v = new Halo2Verifier();
-        string memory j = vm.readFile("test/fixtures/spike.json");
+        string memory j = vm.readFile("test/fixtures/riskone.json");
         proof = vm.parseJsonBytes(j, ".proof");
         string[] memory s = vm.parseJsonStringArray(j, ".instances");
         for (uint256 i = 0; i < s.length; i++) instances.push(vm.parseUint(s[i]));
