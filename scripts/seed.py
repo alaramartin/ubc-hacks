@@ -72,7 +72,7 @@ def main() -> None:
     hub_key = os.environ["DEPLOYER_KEY"]
     transfers = sorted(w.transfers, key=lambda x: x[3])
     sim_hub = transfers[0][0]
-    names = sorted({x for t in transfers for x in t[:2]})
+    names = sorted({x for t in transfers for x in t[:2]} | set(w.roles))
 
     seed_dir = ROOT / ".seed"
     seed_dir.mkdir(exist_ok=True)

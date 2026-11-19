@@ -5,9 +5,9 @@
   "explorer": "https://testnet.arcscan.app",
   "usdc": "0x3600000000000000000000000000000000000000",
   "usdcDecimals": 6,
-  "verifier": "0x89356259d8a2D84D121c00457Cf88908794bAAA9",
-  "escrow": "0xdd5DCc866b37EE3A116E95b4D051AA68f31A60B2",
-  "deployBlock": 73010098,
+  "verifier": "0xAa0B5BABb4E8A9f189712690457bDF30aFC9777f",
+  "escrow": "0xb292Ca92b5Cc6f621Ca15f2eb05f5066305b2905",
+  "deployBlock": 73014218,
   "escrowParams": {
     "min_bond": 500000,
     "slash_amount": 250000,

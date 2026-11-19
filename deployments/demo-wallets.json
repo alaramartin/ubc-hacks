@@ -1,0 +1,15 @@
+{
+  "note": "Seeded demo wallets and the behaviour each was scripted with. For the presenter only; no runtime code reads this file.",
+  "seed": 0,
+  "compress": 10.0,
+  "startBlock": 73010098,
+  "endBlock": 73014186,
+  "transfers": 82,
+  "roles": {
+    "merchant": "0xCEE30B5074819193A88cDf181BAD50CbE6957fFb",
+    "normal": "0x9a36ba9DA3655e1d65eC210c0F3Ad83dFccE9dA0",
+    "drainer": "0xfdF6507AADf9de8BcfE1Ac482673Ab84bF5Dadf8",
+    "launderer": "0x09f311ce4F6883CD31d1dddfba9386B464E1FF52",
+    "fresh": "0x994075960f6dAb633ac6e551842eDf6C0Cb9336f"
+  }
+}

@@ -104,6 +104,11 @@
     "internalType": "bytes32"
    },
    {
+    "name": "input",
+    "type": "uint256[]",
+    "internalType": "uint256[]"
+   },
+   {
     "name": "output",
     "type": "uint256[]",
     "internalType": "uint256[]"
@@ -601,6 +606,12 @@
     "type": "bytes32",
     "indexed": true,
     "internalType": "bytes32"
+   },
+   {
+    "name": "input",
+    "type": "uint256[]",
+    "indexed": false,
+    "internalType": "uint256[]"
    },
    {
     "name": "output",
