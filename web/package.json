@@ -1,0 +1,29 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "sync-spec": "cp ../spec/features.json src/lib/features.spec.json && cp ../deployments/arc-testnet.json src/lib/deploy/arc-testnet.json && cp ../deployments/abi/HonestEscrow.json ../deployments/abi/Halo2Verifier.json src/lib/deploy/ && cp ../model/artifacts/riskone/settings.json src/lib/deploy/circuit.json",
+    "test": "node --experimental-strip-types --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.1",
+    "next": "16.4.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "viem": "^2.58.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.6",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@10.17.1"
+}

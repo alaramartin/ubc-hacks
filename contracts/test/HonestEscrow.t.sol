@@ -85,7 +85,7 @@ contract HonestEscrowTest is Test {
         bytes32 id = _open(input);
         assertEq(usdc.balanceOf(address(escrow)), BOND + PRICE);
         vm.prank(seller);
-        escrow.fulfill(id, output, proof);
+        escrow.fulfill(id, input, output, proof);
 
         vm.expectRevert(HonestEscrow.WindowOpen.selector);
         escrow.finalize(id);
@@ -99,7 +99,7 @@ contract HonestEscrowTest is Test {
     function test_challengeOnValidProofReverts() public {
         bytes32 id = _open(input);
         vm.prank(seller);
-        escrow.fulfill(id, output, proof);
+        escrow.fulfill(id, input, output, proof);
         vm.prank(watcher);
         vm.expectRevert(HonestEscrow.ProofValid.selector);
         escrow.challenge{gas: 5_000_000}(id, input, proof);
@@ -108,7 +108,7 @@ contract HonestEscrowTest is Test {
     function test_starvedChallengeCannotSlash() public {
         bytes32 id = _open(input);
         vm.prank(seller);
-        escrow.fulfill(id, output, proof);
+        escrow.fulfill(id, input, output, proof);
         vm.prank(watcher);
         vm.expectRevert(HonestEscrow.NotEnoughGas.selector);
         escrow.challenge{gas: 1_500_000}(id, input, proof);
@@ -119,7 +119,7 @@ contract HonestEscrowTest is Test {
         uint256[] memory edited = new uint256[](1);
         edited[0] = output[0] - 3000; // a lower risk score than the model produced
         vm.prank(seller);
-        escrow.fulfill(id, edited, proof);
+        escrow.fulfill(id, input, edited, proof);
 
         vm.prank(watcher);
         escrow.challenge{gas: 5_000_000}(id, input, proof);
@@ -135,7 +135,7 @@ contract HonestEscrowTest is Test {
         realInput[4] += 8192; // the buyer's input differs from what the seller proved over
         bytes32 id = _open(realInput);
         vm.prank(seller);
-        escrow.fulfill(id, output, proof);
+        escrow.fulfill(id, realInput, output, proof);
         vm.prank(watcher);
         escrow.challenge{gas: 5_000_000}(id, realInput, proof);
         assertEq(uint8(escrow.getJob(id).status), uint8(HonestEscrow.Status.Slashed));
@@ -152,7 +152,7 @@ contract HonestEscrowTest is Test {
         seller = other;
         bytes32 id = _open(input);
         vm.prank(other);
-        escrow.fulfill(id, output, proof);
+        escrow.fulfill(id, input, output, proof);
         escrow.challenge{gas: 5_000_000}(id, input, proof);
         (,,, bool slashed,,) = escrow.sellers(other);
         assertTrue(slashed);
@@ -161,7 +161,7 @@ contract HonestEscrowTest is Test {
     function test_wrongPreimageRejected() public {
         bytes32 id = _open(input);
         vm.prank(seller);
-        escrow.fulfill(id, output, proof);
+        escrow.fulfill(id, input, output, proof);
         uint256[] memory forged = input;
         forged[0] += 1;
         vm.expectRevert(HonestEscrow.InputMismatch.selector);
@@ -171,7 +171,7 @@ contract HonestEscrowTest is Test {
     function test_wrongProofBytesRejected() public {
         bytes32 id = _open(input);
         vm.prank(seller);
-        escrow.fulfill(id, output, proof);
+        escrow.fulfill(id, input, output, proof);
         bytes memory other = bytes.concat(proof, hex"00");
         vm.expectRevert(HonestEscrow.ProofMismatch.selector);
         escrow.challenge(id, input, other);
@@ -180,7 +180,7 @@ contract HonestEscrowTest is Test {
     function test_challengeAfterWindowRejected() public {
         bytes32 id = _open(input);
         vm.prank(seller);
-        escrow.fulfill(id, output, proof);
+        escrow.fulfill(id, input, output, proof);
         vm.warp(block.timestamp + WINDOW);
         vm.expectRevert(HonestEscrow.WindowClosed.selector);
         escrow.challenge(id, input, proof);
@@ -204,10 +204,18 @@ contract HonestEscrowTest is Test {
         escrow.open(seller, otherHash, deadline, a);
     }
 
+    function test_fulfillWithWrongInputRejected() public {
+        bytes32 id = _open(input);
+        uint256[] memory other = new uint256[](7);
+        vm.prank(seller);
+        vm.expectRevert(HonestEscrow.InputMismatch.selector);
+        escrow.fulfill(id, other, output, proof);
+    }
+
     function test_onlySellerFulfills() public {
         bytes32 id = _open(input);
         vm.expectRevert(HonestEscrow.NotSeller.selector);
-        escrow.fulfill(id, output, proof);
+        escrow.fulfill(id, input, output, proof);
     }
 
     function test_slashedSellerCannotTakeJobs() public {

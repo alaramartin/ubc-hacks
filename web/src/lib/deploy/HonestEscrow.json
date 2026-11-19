@@ -1,0 +1,901 @@
+[
+ {
+  "type": "constructor",
+  "inputs": [
+   {
+    "name": "usdc_",
+    "type": "address",
+    "internalType": "contract IUSDC"
+   },
+   {
+    "name": "verifier_",
+    "type": "address",
+    "internalType": "contract IHalo2Verifier"
+   },
+   {
+    "name": "nInputs_",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "nOutputs_",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "minBond_",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "slashAmount_",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "challengeWindow_",
+    "type": "uint64",
+    "internalType": "uint64"
+   },
+   {
+    "name": "verifyGas_",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "challenge",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "input",
+    "type": "uint256[]",
+    "internalType": "uint256[]"
+   },
+   {
+    "name": "proof",
+    "type": "bytes",
+    "internalType": "bytes"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "challengeWindow",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint64",
+    "internalType": "uint64"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "finalize",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "fulfill",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "output",
+    "type": "uint256[]",
+    "internalType": "uint256[]"
+   },
+   {
+    "name": "proof",
+    "type": "bytes",
+    "internalType": "bytes"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "getJob",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "tuple",
+    "internalType": "struct HonestEscrow.Job",
+    "components": [
+     {
+      "name": "buyer",
+      "type": "address",
+      "internalType": "address"
+     },
+     {
+      "name": "seller",
+      "type": "address",
+      "internalType": "address"
+     },
+     {
+      "name": "commitment",
+      "type": "uint256",
+      "internalType": "uint256"
+     },
+     {
+      "name": "price",
+      "type": "uint256",
+      "internalType": "uint256"
+     },
+     {
+      "name": "inputHash",
+      "type": "bytes32",
+      "internalType": "bytes32"
+     },
+     {
+      "name": "proofHash",
+      "type": "bytes32",
+      "internalType": "bytes32"
+     },
+     {
+      "name": "deadline",
+      "type": "uint64",
+      "internalType": "uint64"
+     },
+     {
+      "name": "fulfilledAt",
+      "type": "uint64",
+      "internalType": "uint64"
+     },
+     {
+      "name": "status",
+      "type": "uint8",
+      "internalType": "enum HonestEscrow.Status"
+     },
+     {
+      "name": "output",
+      "type": "uint256[]",
+      "internalType": "uint256[]"
+     }
+    ]
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "inputHashOf",
+  "inputs": [
+   {
+    "name": "input",
+    "type": "uint256[]",
+    "internalType": "uint256[]"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "stateMutability": "pure"
+ },
+ {
+  "type": "function",
+  "name": "instancesOf",
+  "inputs": [
+   {
+    "name": "commitment",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "input",
+    "type": "uint256[]",
+    "internalType": "uint256[]"
+   },
+   {
+    "name": "output",
+    "type": "uint256[]",
+    "internalType": "uint256[]"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "inst",
+    "type": "uint256[]",
+    "internalType": "uint256[]"
+   }
+  ],
+  "stateMutability": "pure"
+ },
+ {
+  "type": "function",
+  "name": "jobNonce",
+  "inputs": [
+   {
+    "name": "seller",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "inputHash",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "deadline",
+    "type": "uint64",
+    "internalType": "uint64"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "minBond",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "nInputs",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "nOutputs",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "open",
+  "inputs": [
+   {
+    "name": "seller",
+    "type": "address",
+    "internalType": "address"
+   },
+   {
+    "name": "inputHash",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   },
+   {
+    "name": "deadline",
+    "type": "uint64",
+    "internalType": "uint64"
+   },
+   {
+    "name": "auth",
+    "type": "tuple",
+    "internalType": "struct HonestEscrow.Authorization",
+    "components": [
+     {
+      "name": "from",
+      "type": "address",
+      "internalType": "address"
+     },
+     {
+      "name": "value",
+      "type": "uint256",
+      "internalType": "uint256"
+     },
+     {
+      "name": "validAfter",
+      "type": "uint256",
+      "internalType": "uint256"
+     },
+     {
+      "name": "validBefore",
+      "type": "uint256",
+      "internalType": "uint256"
+     },
+     {
+      "name": "v",
+      "type": "uint8",
+      "internalType": "uint8"
+     },
+     {
+      "name": "r",
+      "type": "bytes32",
+      "internalType": "bytes32"
+     },
+     {
+      "name": "s",
+      "type": "bytes32",
+      "internalType": "bytes32"
+     }
+    ]
+   }
+  ],
+  "outputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "refund",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "internalType": "bytes32"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "registerSeller",
+  "inputs": [
+   {
+    "name": "commitment",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "price",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "bond",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "endpoint",
+    "type": "string",
+    "internalType": "string"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "sellerCount",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "sellerList",
+  "inputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "sellers",
+  "inputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "address"
+   }
+  ],
+  "outputs": [
+   {
+    "name": "commitment",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "price",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "bond",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "slashed",
+    "type": "bool",
+    "internalType": "bool"
+   },
+   {
+    "name": "registered",
+    "type": "bool",
+    "internalType": "bool"
+   },
+   {
+    "name": "endpoint",
+    "type": "string",
+    "internalType": "string"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "slashAmount",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "updateSeller",
+  "inputs": [
+   {
+    "name": "price",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "addBond",
+    "type": "uint256",
+    "internalType": "uint256"
+   },
+   {
+    "name": "endpoint",
+    "type": "string",
+    "internalType": "string"
+   }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+ },
+ {
+  "type": "function",
+  "name": "usdc",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "contract IUSDC"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "verifier",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "address",
+    "internalType": "contract IHalo2Verifier"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "function",
+  "name": "verifyGas",
+  "inputs": [],
+  "outputs": [
+   {
+    "name": "",
+    "type": "uint256",
+    "internalType": "uint256"
+   }
+  ],
+  "stateMutability": "view"
+ },
+ {
+  "type": "event",
+  "name": "JobFinalized",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "indexed": true,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "seller",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "paid",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "JobFulfilled",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "indexed": true,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "output",
+    "type": "uint256[]",
+    "indexed": false,
+    "internalType": "uint256[]"
+   },
+   {
+    "name": "proof",
+    "type": "bytes",
+    "indexed": false,
+    "internalType": "bytes"
+   },
+   {
+    "name": "challengeEndsAt",
+    "type": "uint64",
+    "indexed": false,
+    "internalType": "uint64"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "JobOpened",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "indexed": true,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "buyer",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "seller",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "commitment",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   },
+   {
+    "name": "price",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   },
+   {
+    "name": "inputHash",
+    "type": "bytes32",
+    "indexed": false,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "deadline",
+    "type": "uint64",
+    "indexed": false,
+    "internalType": "uint64"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "JobRefunded",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "indexed": true,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "buyer",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "refunded",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "JobSlashed",
+  "inputs": [
+   {
+    "name": "jobId",
+    "type": "bytes32",
+    "indexed": true,
+    "internalType": "bytes32"
+   },
+   {
+    "name": "seller",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "challenger",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "refunded",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   },
+   {
+    "name": "slashed",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "SellerRegistered",
+  "inputs": [
+   {
+    "name": "seller",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "commitment",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   },
+   {
+    "name": "price",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   },
+   {
+    "name": "bond",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   },
+   {
+    "name": "endpoint",
+    "type": "string",
+    "indexed": false,
+    "internalType": "string"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "event",
+  "name": "SellerUpdated",
+  "inputs": [
+   {
+    "name": "seller",
+    "type": "address",
+    "indexed": true,
+    "internalType": "address"
+   },
+   {
+    "name": "price",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   },
+   {
+    "name": "bond",
+    "type": "uint256",
+    "indexed": false,
+    "internalType": "uint256"
+   },
+   {
+    "name": "endpoint",
+    "type": "string",
+    "indexed": false,
+    "internalType": "string"
+   }
+  ],
+  "anonymous": false
+ },
+ {
+  "type": "error",
+  "name": "AlreadyRegistered",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "BadStatus",
+  "inputs": [
+   {
+    "name": "status",
+    "type": "uint8",
+    "internalType": "enum HonestEscrow.Status"
+   }
+  ]
+ },
+ {
+  "type": "error",
+  "name": "BondTooLow",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "DeadlineNotPassed",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "DeadlinePassed",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "InputMismatch",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "JobExists",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "NotEnoughGas",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "NotRegistered",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "NotSeller",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "ProofMismatch",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "ProofValid",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "SellerSlashed",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "TransferFailed",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "WindowClosed",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "WindowOpen",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "WrongLength",
+  "inputs": []
+ },
+ {
+  "type": "error",
+  "name": "WrongPrice",
+  "inputs": []
+ }
+]

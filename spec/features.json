@@ -47,5 +47,10 @@
   "quantization": {
     "scheme": "felt = round_half_even(x * 2^input_scale). All features are non-negative.",
     "input_scale_source": "model/artifacts/<model>/settings.json run_args.input_scale"
+  },
+  "source": {
+    "logs": "Transfer(address,address,uint256) logs emitted by Arc's native USDC system emitter 0xfffffffffffffffffffffffffffffffffffffffe (EIP-7708). These cover every USDC movement, native or through the ERC-20 interface. The ERC-20 contract 0x3600000000000000000000000000000000000000 emits a mirror log for ERC-20 calls; it is not indexed, to avoid double counting.",
+    "value": "emitter values have 18 decimals; value = floor(raw / 10^12) to get 6-decimal USDC base units",
+    "first_seen_scope": "First-seen times come from the indexed range only (from the escrow's deploy block), so a wallet older than the index counts as first seen at its first indexed transfer."
   }
 }

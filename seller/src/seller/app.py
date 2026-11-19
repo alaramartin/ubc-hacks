@@ -151,7 +151,7 @@ def create_app(chain: Chain, behaviour: Behaviour, name: str) -> FastAPI:
 
         ans = behaviour.answer(felts)
         proof_bytes = bytes.fromhex(ans.proof.proof_hex.removeprefix("0x"))
-        fulfilled = chain.send(escrow.functions.fulfill(job_id, ans.output, proof_bytes))
+        fulfilled = chain.send(escrow.functions.fulfill(job_id, felts, ans.output, proof_bytes))
         log.info("job %s fulfilled in %s (mode %s)", job_id.hex(), fulfilled.hash, behaviour.mode)
 
         out_scale = behaviour.committed.output_scale

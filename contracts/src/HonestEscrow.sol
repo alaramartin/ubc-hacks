@@ -99,7 +99,7 @@ contract HonestEscrow {
         bytes32 inputHash,
         uint64 deadline
     );
-    event JobFulfilled(bytes32 indexed jobId, uint256[] output, bytes proof, uint64 challengeEndsAt);
+    event JobFulfilled(bytes32 indexed jobId, uint256[] input, uint256[] output, bytes proof, uint64 challengeEndsAt);
     event JobFinalized(bytes32 indexed jobId, address indexed seller, uint256 paid);
     event JobRefunded(bytes32 indexed jobId, address indexed buyer, uint256 refunded);
     event JobSlashed(
@@ -224,19 +224,22 @@ contract HonestEscrow {
         emit JobOpened(jobId, auth.from, seller, sel.commitment, auth.value, inputHash, deadline);
     }
 
-    /// @notice Seller posts its answer and proof. The full proof goes in calldata (and the event) so
-    /// anyone can challenge; only its hash is stored.
-    function fulfill(bytes32 jobId, uint256[] calldata output, bytes calldata proof) external {
+    /// @notice Seller posts its answer and proof, with the buyer's input. Input, output and proof go
+    /// in the event so anyone can re-run verification or challenge; only hashes and the output are stored.
+    function fulfill(bytes32 jobId, uint256[] calldata input, uint256[] calldata output, bytes calldata proof)
+        external
+    {
         Job storage j = jobs[jobId];
         if (j.status != Status.Open) revert BadStatus(j.status);
         if (msg.sender != j.seller) revert NotSeller();
         if (block.timestamp > j.deadline) revert DeadlinePassed();
-        if (output.length != nOutputs) revert WrongLength();
+        if (output.length != nOutputs || input.length != nInputs) revert WrongLength();
+        if (keccak256(abi.encodePacked(input)) != j.inputHash) revert InputMismatch();
         j.output = output;
         j.proofHash = keccak256(proof);
         j.fulfilledAt = uint64(block.timestamp);
         j.status = Status.Fulfilled;
-        emit JobFulfilled(jobId, output, proof, uint64(block.timestamp) + challengeWindow);
+        emit JobFulfilled(jobId, input, output, proof, uint64(block.timestamp) + challengeWindow);
     }
 
     /// @notice Pay the seller once the challenge window has passed. Callable by anyone.
