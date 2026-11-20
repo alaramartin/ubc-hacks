@@ -7,6 +7,8 @@ When you pay for a model through an API, you can't see what runs. You can pay fo
 3. The provider answers with an EZKL proof that its committed weights, run on that prompt, produced the answer.
 4. The agent checks the proof for free with `eth_call`. A good proof pays the provider after a 60 second window. A bad one gets challenged: the contract verifies it, refunds the agent and slashes the provider's bond.
 
+Overpaying for a cheaper model is the mild case. The same proof catches an attacker who swaps a tampered model in behind the API, before an agent acts on its answers and moves money. It lets safety evaluators check that the model they tested is the one served to customers. And it gives anyone who has to show which model made a decision, like a bank or an auditor, a proof for every answer.
+
 - Receipts for every job: https://zkreceipt.vercel.app
 - Demo video: (link)
 
