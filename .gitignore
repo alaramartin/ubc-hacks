@@ -22,3 +22,6 @@ model/artifacts/*/network.ezkl
 model/artifacts/*/_*/
 .seed/
 .sellers/
+
+# demo video project (Remotion source, voiceover recording, renders)
+video/
