@@ -114,6 +114,8 @@ The agent computes the model's input itself, so it needs its own view of who sen
 | Destination | Webhook to `https://honest-model.vercel.app/api/streams`, HMAC-signed with a shared secret |
 | Created by | `scripts/create-stream.mjs` (runs `test_filter` on a real block first) |
 
+The agent, the sellers and the scripts also use a QuickNode Arc testnet endpoint as their RPC. The receipt pages use Arc's public RPC, so no endpoint token reaches the browser.
+
 The filter keeps two kinds of log and drops everything else:
 
 - **USDC `Transfer` logs from Arc's native emitter `0xff…fe`.** On Arc every USDC movement emits a log from this system address, including native gas-token transfers. An ERC-20 call also emits a copy from the USDC contract, so the filter reads only the emitter and nothing is counted twice. Values are converted from 18 decimals to USDC's 6.
