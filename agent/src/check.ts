@@ -161,6 +161,8 @@ export async function riskCheckWith(f: Features): Promise<CheckResult> {
     const c = await challenge(a.jobId, felts, a.proof);
     ui.bad("challenge", `onchain verify failed: refunded ${ui.usdc(c.refunded)}, seller bond slashed ${ui.usdc(c.slashed)}  tx ${ui.tx(c.hash)}  ${pc.dim(`${c.gas.toLocaleString()} gas`)}`);
     recordJob(a.jobId, s.address, address, "Slashed");
+    const rec = receiptsUrl();
+    if (rec) ui.note(`receipt ${rec}/r/${a.jobId}`);
     spent -= c.refunded;
     addSpend(-c.refunded);
   }

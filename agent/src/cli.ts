@@ -71,8 +71,9 @@ async function cmdPay(target: Address, amountStr: string | undefined, trust: boo
     ui.decision(false, `not paying without a verified risk check (${r.reason})`);
     return;
   }
+  const said = trust ? "unverified risk" : "proven risk";
   if (r.risk >= policy.riskThreshold) {
-    ui.decision(false, `proven risk ${r.risk.toFixed(4)} is at or above ${policy.riskThreshold}; ${ui.usdc(amount)} stays in the agent's wallet`);
+    ui.decision(false, `${said} ${r.risk.toFixed(4)} is at or above ${policy.riskThreshold}; ${ui.usdc(amount)} stays in the agent's wallet`);
     return;
   }
   if (amount > BigInt(policy.approvalAbove) && !(await confirm(`${ui.usdc(amount)} is above the approval limit.`))) {
@@ -89,7 +90,7 @@ async function cmdPay(target: Address, amountStr: string | undefined, trust: boo
   if (rc.status !== "success") throw new Error(`payment ${hash} reverted`);
   addSpend(amount);
   ui.ok("paid", `${ui.usdc(amount)} to ${ui.addr(target)}  tx ${ui.tx(hash)}`);
-  ui.decision(true, `proven risk ${r.risk.toFixed(4)} is below ${policy.riskThreshold}; paid ${ui.usdc(amount)}`);
+  ui.decision(true, `${said} ${r.risk.toFixed(4)} is below ${policy.riskThreshold}; paid ${ui.usdc(amount)}`);
 }
 
 async function cmdFinalize() {

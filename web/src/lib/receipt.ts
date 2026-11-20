@@ -1,6 +1,6 @@
 import { decodeEventLog, toEventSelector, type Address, type Hex } from "viem";
 import { client, DEPLOYMENT, escrowAbi, riskOf, STATUS } from "./chain";
-import { sql } from "./db";
+import { sql, syncedBlock } from "./db";
 
 export type Receipt = {
   jobId: Hex;
@@ -16,6 +16,8 @@ export type Receipt = {
   input: bigint[] | null;
   proof: Hex | null;
   challengeEndsAt: number | null;
+  /** Highest block the Stream has delivered to the index; events after it are not shown yet. */
+  indexedTo: number | null;
   events: { name: string; tx: Hex; block: number; ts: number; args: Record<string, unknown> }[];
 };
 
@@ -40,6 +42,8 @@ export async function loadReceipt(jobId: Hex): Promise<Receipt | null> {
     args: [jobId],
   })) as Job;
   if (job.status === 0) return null;
+  const window = (await client().readContract({ address: DEPLOYMENT.escrow, abi: escrowAbi, functionName: "challengeWindow" })) as bigint;
+  const indexedTo = await syncedBlock();
 
   // Events come from the Stream-fed index (stream/filter.js keeps every HonestEscrow log).
   const rows = (await sql().query(
@@ -50,7 +54,7 @@ export async function loadReceipt(jobId: Hex): Promise<Receipt | null> {
   const events: Receipt["events"] = [];
   let input: bigint[] | null = null;
   let proof: Hex | null = null;
-  let challengeEndsAt: number | null = null;
+  let challengeEndsAt: number | null = job.fulfilledAt > 0n ? Number(job.fulfilledAt + window) : null;
   for (const r of rows) {
     const ev = decodeEventLog({ abi: escrowAbi, topics: r.topics as [Hex, ...Hex[]], data: r.data });
     const args = ev.args as unknown as Record<string, unknown>;
@@ -77,6 +81,7 @@ export async function loadReceipt(jobId: Hex): Promise<Receipt | null> {
     input,
     proof,
     challengeEndsAt,
+    indexedTo,
     events,
   };
 }

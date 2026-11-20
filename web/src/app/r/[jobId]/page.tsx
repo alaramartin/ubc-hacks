@@ -26,9 +26,10 @@ function Stamp({ r }: { r: Receipt }) {
   const last = r.events.at(-1);
   if (r.status === "Slashed") return <div className="stamp fail">SLASHED{last && <small>{time(last.ts)}</small>}</div>;
   if (r.status === "Finalized") return <div className="stamp pass">VERIFIED · PAID{last && <small>{time(last.ts)}</small>}</div>;
-  if (r.status === "Fulfilled") {
-    const ends = r.challengeEndsAt ? time(r.challengeEndsAt) : "";
-    return <div className="stamp open">IN WINDOW<small>until {ends}</small></div>;
+  if (r.status === "Fulfilled" && r.challengeEndsAt) {
+    if (Date.now() / 1000 > r.challengeEndsAt)
+      return <div className="stamp open">WINDOW CLOSED<small>ready to pay seller</small></div>;
+    return <div className="stamp open">IN WINDOW<small>until {time(r.challengeEndsAt)}</small></div>;
   }
   return <div className="stamp open">{r.status.toUpperCase()}</div>;
 }
@@ -40,6 +41,12 @@ async function ReceiptView({ params }: { params: Promise<{ jobId: string }> }) {
   const r = await loadReceipt(jobId as Hex);
   if (!r) return <p>No job {jobId} in escrow {DEPLOYMENT.escrow}.</p>;
   const opened = r.events.find((e) => e.name === "JobOpened");
+  const waiting = (
+    <p>
+      Not indexed yet. The Stream has delivered blocks up to {r.indexedTo?.toLocaleString() ?? "none"}, and this job&apos;s events
+      come after that.
+    </p>
+  );
   const instances = r.input && r.output.length ? [r.commitment, ...r.input, ...r.output].map(String) : null;
 
   return (
@@ -89,8 +96,10 @@ async function ReceiptView({ params }: { params: Promise<{ jobId: string }> }) {
               </tbody>
             </table>
           </div>
+        ) : r.status === "Open" || r.status === "Refunded" ? (
+          <p>The seller has not posted an answer.</p>
         ) : (
-          <p>The seller has not posted an answer yet.</p>
+          waiting
         )}
       </section>
 
@@ -109,6 +118,7 @@ async function ReceiptView({ params }: { params: Promise<{ jobId: string }> }) {
 
       <section>
         <h2>Money</h2>
+        {r.events.length === 0 && waiting}
         <ol className="timeline">
           {r.events.map((e) => (
             <li key={e.tx + e.name}>
