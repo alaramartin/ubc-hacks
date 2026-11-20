@@ -38,9 +38,8 @@ spec/          features.json, vectors.json, instances.md (shared contracts betwe
 model/         Python: simulator, training, ONNX export, EZKL pipeline -> model/artifacts/<model-name>/
 seller/        Python FastAPI seller server (x402, prove, open/fulfill), --mode honest|edit-output|swap-model|fake-input
 contracts/     Foundry: HonestEscrow.sol, generated Verifier.sol, tests, deploy scripts
-indexer/       TS: QuickNode Stream webhook receiver + features API
 agent/         TS: `honest` CLI (buyer agent), policy.json
-web/           Next.js receipt page (/r/<jobId>), deployed to Vercel
+web/           Next.js on Vercel: Stream webhook, features API, receipt pages (/r/<jobId>)
 scripts/       seed wallets, register sellers, reset demo
 deployments/   arc-testnet.json: chain ID, RPC env var name, USDC, HonestEscrow, verifiers, sellers
 ```
@@ -48,7 +47,7 @@ deployments/   arc-testnet.json: chain ID, RPC env var name, USDC, HonestEscrow,
 ## Ownership
 
 - Person A: `model/`, `seller/`, `spec/features.json`, `spec/instances.md`
-- Person B: `contracts/`, `indexer/`, `agent/`, `deployments/`
+- Person B: `contracts/`, `agent/`, `deployments/`
 - Shared: `spec/vectors.json`, `scripts/`, `web/`, README
 
 Agents working for one person stay in that person's directories. A change to anything in `spec/` breaks the other side, so say so in the commit message and tell the other person.
@@ -65,23 +64,22 @@ Fill these in as each part is created and keep them current.
 
 ```
 # model (A)
-cd model && uv sync && uv run python -m model.train && uv run python -m model.ezkl_pipeline
-
-# seller (A)
-cd seller && uv run python -m seller --mode honest --port 8001
+cd model && uv sync && uv run python -m model.train && uv run python -m model.ezkl_pipeline artifacts/riskone
 
 # contracts (B)
 cd contracts && forge build && forge test -vv
-forge script script/Deploy.s.sol --rpc-url $ARC_RPC_URL --broadcast
+scripts/deploy.sh                                  # from repo root; writes deployments/arc-testnet.json
 
-# indexer (B)
-cd indexer && pnpm i && pnpm dev
+# sellers for the demo (from deployments/demo.json; makes a fresh cheater if the last was slashed)
+cd seller && uv run python ../scripts/demo_up.py
+
+# indexer + receipts (web/, on Vercel with Neon; the QuickNode Stream posts to /api/streams)
+cd web && pnpm i && pnpm db:migrate && pnpm db:status && pnpm test
+node --env-file=.env scripts/create-stream.mjs --webhook https://honest-model.vercel.app/api/streams
 
 # agent (B)
 cd agent && pnpm i && pnpm honest sellers
-
-# web
-cd web && pnpm i && pnpm dev
+pnpm honest pay <address> 0.05 [--trust] && pnpm honest finalize
 ```
 
 ## Stack
