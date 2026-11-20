@@ -22,15 +22,24 @@ const LABEL: Record<string, string> = {
   JobRefunded: "Buyer refunded (no answer before deadline)",
 };
 
+// The stamp reports what the chain and the verifier say: slashed, or whether the posted proof
+// checks out (the page runs the same eth_call as "Verify again"), and where the money is.
 function Stamp({ r }: { r: Receipt }) {
   const last = r.events.at(-1);
+  const now = Date.now() / 1000;
+  const windowOpen = r.challengeEndsAt !== null && now <= r.challengeEndsAt;
   if (r.status === "Slashed") return <div className="stamp fail">SLASHED{last && <small>{time(last.ts)}</small>}</div>;
-  if (r.status === "Finalized") return <div className="stamp pass">VERIFIED · PAID{last && <small>{time(last.ts)}</small>}</div>;
-  if (r.status === "Fulfilled" && r.challengeEndsAt) {
-    if (Date.now() / 1000 > r.challengeEndsAt)
-      return <div className="stamp open">WINDOW CLOSED<small>ready to pay seller</small></div>;
-    return <div className="stamp open">IN WINDOW<small>until {time(r.challengeEndsAt)}</small></div>;
+  if (r.status === "Refunded") return <div className="stamp open">REFUNDED<small>no answer before the deadline</small></div>;
+  if (r.proofValid === false) {
+    const note = r.status === "Finalized" ? "seller paid, never challenged" : windowOpen ? `challenge before ${time(r.challengeEndsAt!)}` : "window closed, not challenged";
+    return <div className="stamp fail">PROOF FAILS<small>{note}</small></div>;
   }
+  if (r.proofValid === true) {
+    if (r.status === "Finalized") return <div className="stamp pass">VERIFIED · PAID{last && <small>{time(last.ts)}</small>}</div>;
+    return <div className="stamp pass">VERIFIED<small>{windowOpen ? `seller paid after ${time(r.challengeEndsAt!)}` : "ready to pay seller"}</small></div>;
+  }
+  if (r.status === "Fulfilled" && r.challengeEndsAt)
+    return <div className="stamp open">{windowOpen ? "IN WINDOW" : "WINDOW CLOSED"}<small>{windowOpen ? `until ${time(r.challengeEndsAt)}` : "ready to pay seller"}</small></div>;
   return <div className="stamp open">{r.status.toUpperCase()}</div>;
 }
 

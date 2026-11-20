@@ -1,5 +1,5 @@
 import { decodeEventLog, toEventSelector, type Address, type Hex } from "viem";
-import { client, DEPLOYMENT, escrowAbi, riskOf, STATUS } from "./chain";
+import { client, DEPLOYMENT, escrowAbi, riskOf, STATUS, verifierAbi } from "./chain";
 import { sql, syncedBlock } from "./db";
 
 export type Receipt = {
@@ -18,6 +18,8 @@ export type Receipt = {
   challengeEndsAt: number | null;
   /** Highest block the Stream has delivered to the index; events after it are not shown yet. */
   indexedTo: number | null;
+  /** Result of the verifier eth_call on this job's commitment, prompt and output; null until indexed. */
+  proofValid: boolean | null;
   events: { name: string; tx: Hex; block: number; ts: number; args: Record<string, unknown> }[];
 };
 
@@ -67,6 +69,13 @@ export async function loadReceipt(jobId: Hex): Promise<Receipt | null> {
   }
   const out = [...job.output];
   const r = out.length ? riskOf(out[0]) : null;
+  let proofValid: boolean | null = null;
+  if (input && proof && out.length) {
+    proofValid = await client()
+      .readContract({ address: DEPLOYMENT.verifier, abi: verifierAbi, functionName: "verifyProof", args: [proof, [job.commitment, ...input, ...out]] })
+      .then((v) => v === true)
+      .catch(() => false);
+  }
   return {
     jobId,
     status: STATUS[job.status],
@@ -82,6 +91,7 @@ export async function loadReceipt(jobId: Hex): Promise<Receipt | null> {
     proof,
     challengeEndsAt,
     indexedTo,
+    proofValid,
     events,
   };
 }

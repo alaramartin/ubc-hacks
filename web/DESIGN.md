@@ -38,7 +38,7 @@ slip ground
 
 ## Signature detail
 
-The status stamp: a rotated, double-ruled ink stamp (VERIFIED in pass green or SLASHED in fail red) with the settlement time inside, set at the top right of the sheet like a stamp on a paper form.
+The status stamp: a rotated, double-ruled ink stamp with what the chain and the verifier say (VERIFIED in pass green; SLASHED or PROOF FAILS in fail red; IN WINDOW, PAID or REFUNDED in faint ink) and a short note inside, set at the top right of the sheet like a stamp on a paper form.
 
 ## Motion
 
