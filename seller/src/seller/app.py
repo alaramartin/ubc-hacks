@@ -1,4 +1,4 @@
-"""x402 seller: risk checks paid into HonestEscrow, answered with an EZKL proof.
+"""x402 seller: risk checks paid into ReceiptEscrow, answered with an EZKL proof.
 
 Protocol (see PLAN.md "One paid request"):
   POST /v1/risk {address, block, input: [felt strings]}
@@ -38,7 +38,7 @@ def b64json(o: dict) -> str:
 
 
 def create_app(chain: Chain, behaviour: Behaviour, name: str) -> FastAPI:
-    app = FastAPI(title=f"Honest Model seller: {name}")
+    app = FastAPI(title=f"zkReceipt seller: {name}")
     escrow = chain.escrow
     n_inputs = escrow.functions.nInputs().call()
 

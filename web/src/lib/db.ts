@@ -43,12 +43,14 @@ export const SCHEMA = [
 export async function syncedBlock(): Promise<number | null> {
   const db = sql();
   const rows = (await db.query(
+    // Batches can overlap (elastic batch sizes, or two Streams over the same range), so compare
+    // each batch's start with the highest block covered by every batch before it.
     `with b as (
-       select start_block, end_block,
-              lag(end_block) over (order by start_block) as prev_end
+       select start_block,
+              max(end_block) over (order by start_block, end_block rows between unbounded preceding and 1 preceding) as covered
        from batches)
      select coalesce(
-       (select min(prev_end) from b where prev_end is not null and start_block > prev_end + 1),
+       (select min(covered) from b where covered is not null and start_block > covered + 1),
        (select max(end_block) from batches)) as synced`,
   )) as { synced: string | null }[];
   return rows[0]?.synced == null ? null : Number(rows[0].synced);

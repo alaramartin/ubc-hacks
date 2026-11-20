@@ -1,14 +1,14 @@
 #!/usr/bin/env -S node --experimental-strip-types
 /**
- * honest: a buyer agent that only pays for proven model answers.
+ * zkr: the zkReceipt buyer agent, that only pays for proven model answers.
  *
- *   honest sellers                 sellers registered in the escrow
- *   honest check <address>         buy one verified risk score
- *   honest pay <address> <usdc>    risk-check the address, then pay it only if the policy allows
+ *   zkr sellers                 sellers registered in the escrow
+ *   zkr check <address>         buy one verified risk score
+ *   zkr pay <address> <usdc>    risk-check the address, then pay it only if the policy allows
  *     --trust                      skip verification and believe the seller (a plain x402 buyer, for comparison)
- *   honest finalize                release payment to sellers whose challenge window has passed
- *   honest receipt <jobId>         show a job as recorded onchain
- *   honest balance                 the agent's USDC and today's spend
+ *   zkr finalize                release payment to sellers whose challenge window has passed
+ *   zkr receipt <jobId>         show a job as recorded onchain
+ *   zkr balance                 the agent's USDC and today's spend
  */
 import { createInterface } from "node:readline/promises";
 import pc from "picocolors";
@@ -25,7 +25,7 @@ async function balance(a: Address): Promise<bigint> {
 }
 
 async function cmdSellers() {
-  ui.title(`Sellers in HonestEscrow ${ui.addr(deployment.escrow)}`);
+  ui.title(`Sellers in ReceiptEscrow ${ui.addr(deployment.escrow)}`);
   for (const s of await listSellers()) {
     const status = s.slashed ? pc.red("SLASHED") : s.registered ? pc.green("active") : pc.dim("inactive");
     console.log(
@@ -41,7 +41,7 @@ function parseTarget(x: string | undefined): Address {
 }
 
 async function cmdCheck(target: Address) {
-  ui.title(`honest check ${target}`);
+  ui.title(`zkr check ${target}`);
   const r = await riskCheck(target);
   if (!r.ok) ui.decision(false, `no verified answer: ${r.reason}`);
   else {
@@ -58,9 +58,9 @@ async function confirm(q: string): Promise<boolean> {
 }
 
 async function cmdPay(target: Address, amountStr: string | undefined, trust: boolean) {
-  if (!amountStr) throw new Error("usage: honest pay <address> <amount in USDC>");
+  if (!amountStr) throw new Error("usage: zkr pay <address> <amount in USDC>");
   const amount = parseUnits(amountStr, deployment.usdcDecimals);
-  ui.title(`honest pay ${target} ${ui.usdc(amount)}${trust ? pc.yellow("  --trust") : ""}`);
+  ui.title(`zkr pay ${target} ${ui.usdc(amount)}${trust ? pc.yellow("  --trust") : ""}`);
 
   if (spentToday() + amount > BigInt(policy.dailyBudget)) {
     ui.decision(false, `payment would exceed the daily budget of ${ui.usdc(BigInt(policy.dailyBudget))}`);
@@ -94,7 +94,7 @@ async function cmdPay(target: Address, amountStr: string | undefined, trust: boo
 }
 
 async function cmdFinalize() {
-  ui.title("honest finalize (and refund unanswered jobs)");
+  ui.title("zkr finalize (and refund unanswered jobs)");
   const window = (await publicClient.readContract({ ...escrow, functionName: "challengeWindow" })) as bigint;
   const now = BigInt(Math.floor(Date.now() / 1000));
   let n = 0;
@@ -137,7 +137,7 @@ async function cmdFinalize() {
 }
 
 async function cmdReceipt(jobId: string | undefined) {
-  if (!jobId?.startsWith("0x")) throw new Error("usage: honest receipt <jobId>");
+  if (!jobId?.startsWith("0x")) throw new Error("usage: zkr receipt <jobId>");
   const j = await getJob(jobId as Hex);
   ui.title(`job ${jobId}`);
   const logit = j.output.length ? Number(signedFromFelt(j.output[0])) / 2 ** OUTPUT_SCALE : NaN;
@@ -178,7 +178,7 @@ async function main() {
     case "balance":
       return cmdBalance();
     default:
-      console.log("usage: honest sellers | check <address> | pay <address> <usdc> [--trust] | finalize | receipt <jobId> | balance");
+      console.log("usage: zkr sellers | check <address> | pay <address> <usdc> [--trust] | finalize | receipt <jobId> | balance");
       process.exitCode = cmd ? 1 : 0;
   }
 }

@@ -5,7 +5,7 @@ so each demo run of a cheating seller needs a fresh one).
         --price 5000 --bond 500000 --endpoint http://localhost:8002
 
 Writes the key to .sellers/<name>-<address>.key (gitignored), sends bond + gas from DEPLOYER,
-registers in HonestEscrow, and prints the serve command.
+registers in ReceiptEscrow, and prints the serve command.
 """
 
 from __future__ import annotations

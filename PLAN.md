@@ -1,4 +1,4 @@
-# Honest Model: plan
+# zkReceipt: plan
 
 UBC (University Blockchain Conference) Hackathon 2026. Submission closes **Fri Nov 20, 12:00 PM CST** on Devpost. Finals are in person at UT Austin on **Sat Nov 21** (4 min pitch + 2 min Q&A, up to 13 teams). Prizes require being at the closing ceremony.
 
@@ -6,7 +6,7 @@ UBC (University Blockchain Conference) Hackathon 2026. Submission closes **Fri N
 
 AI agents already pay for answers, including risk checks on an address before they send it money. Nothing tells the agent whether the answer came from the model the seller advertises. Anthropic's FlashProve (Nov 2, 2026) showed a provider can prove which committed model produced an output, but proofs cost 70 to 95 times the GPU time of normal inference, which is too expensive to run on every request.
 
-Honest Model is the payment layer for provable inference, built today on a model small enough to prove in seconds. A seller commits to secret model weights on Arc. A buyer agent pays through x402 into an escrow contract instead of to the seller. The seller answers with a zk proof that the committed model, run on the agent's inputs, produced that answer. Correct answers get paid after a short window. Anyone who catches a bad proof challenges it, the contract verifies the proof onchain, the buyer is refunded and the seller loses its bond.
+zkReceipt is the payment layer for provable inference, built today on a model small enough to prove in seconds. A seller commits to secret model weights on Arc. A buyer agent pays through x402 into an escrow contract instead of to the seller. The seller answers with a zk proof that the committed model, run on the agent's inputs, produced that answer. Correct answers get paid after a short window. Anyone who catches a bad proof challenges it, the contract verifies the proof onchain, the buyer is refunded and the seller loses its bond.
 
 One-line version for the stage: **you only pay for answers the committed model actually gave, and lying costs the seller its bond.**
 
@@ -34,19 +34,19 @@ Everyone: public GitHub repo with setup instructions, working demo, 2 to 3 minut
 ## System
 
 ```
-                 QuickNode Stream (Arc testnet, receipts, filter: USDC Transfer + HonestEscrow events)
+                 QuickNode Stream (Arc testnet, receipts, filter: USDC Transfer + ReceiptEscrow events)
                           │ webhook
                           ▼
                     indexer (TS) ──── features API ────┐
                                                        │
   honest CLI (buyer agent, TS) ──POST /v1/risk────────►│ seller (Python, FastAPI + EZKL)
         │      ◄── 402 PaymentRequirements (escrow) ───│
-        │      ── retry with X-PAYMENT (EIP-3009 sig) ►│──► HonestEscrow.open()      (Arc)
-        │      ◄── 200 {jobId, output, proof} ─────────│──► HonestEscrow.fulfill()   (Arc)
+        │      ── retry with X-PAYMENT (EIP-3009 sig) ►│──► ReceiptEscrow.open()      (Arc)
+        │      ◄── 200 {jobId, output, proof} ─────────│──► ReceiptEscrow.fulfill()   (Arc)
         │
         ├── eth_call Verifier.verifyProof(proof, instances built by the agent)   (free)
-        ├── pass: HonestEscrow.finalize() after window, then act on the risk score
-        └── fail: HonestEscrow.challenge(jobId, inputFelts)  → onchain verify → refund + slash
+        ├── pass: ReceiptEscrow.finalize() after window, then act on the risk score
+        └── fail: ReceiptEscrow.challenge(jobId, inputFelts)  → onchain verify → refund + slash
 
   receipt page (Next.js on Vercel): /r/<jobId> reads events from Arc and re-runs verify in the browser
 ```
@@ -58,9 +58,9 @@ Everyone: public GitHub repo with setup instructions, working demo, 2 to 3 minut
 | `spec/` | A + B | `features.json` (feature names, transforms, EZKL scale) and cross-language test vectors. The single source both sides read. |
 | `model/` | A | Python: wallet behaviour simulator, MLP training, ONNX export, EZKL pipeline, artifact output |
 | `seller/` | A | Python FastAPI seller: x402 responses, proving, `open`/`fulfill` transactions, `--mode` cheat modes |
-| `contracts/` | B | Foundry: `HonestEscrow.sol`, generated EZKL `Verifier.sol`, tests, deploy script |
+| `contracts/` | B | Foundry: `ReceiptEscrow.sol`, generated EZKL `Verifier.sol`, tests, deploy script |
 | `web/` (indexer part) | B | Next.js route handlers on Vercel: `POST /api/streams` (Stream webhook, HMAC-checked) into Neon Postgres, `GET /api/features/:address` |
-| `agent/` | B | TS `honest` CLI: seller discovery, policy, x402 client, verify, challenge, finalize, pay |
+| `agent/` | B | TS `zkr` CLI: seller discovery, policy, x402 client, verify, challenge, finalize, pay |
 | `web/` (receipts) | whoever is free first | `/r/<jobId>` receipt pages from the Stream-fed index of escrow events, plus chain reads |
 | `scripts/` | A + B | Seeding demo wallets on Arc, registering sellers, demo reset |
 | `deployments/arc-testnet.json` | B writes, everyone reads | Contract addresses, USDC address, chain ID, seller registry. No address literals anywhere else. |
@@ -69,15 +69,15 @@ Everyone: public GitHub repo with setup instructions, working demo, 2 to 3 minut
 
 ### Seller registration
 
-`HonestEscrow.registerSeller(commitment, verifier, price, endpoint)` with a USDC bond pulled by `transferFrom`. `commitment` is the Poseidon hash of the model parameters that EZKL exposes when `param_visibility = "hashed"`. `verifier` is the address of the seller's deployed EZKL verifier. Anyone can read the registry, and the agent's seller list comes only from it.
+`ReceiptEscrow.registerSeller(commitment, verifier, price, endpoint)` with a USDC bond pulled by `transferFrom`. `commitment` is the Poseidon hash of the model parameters that EZKL exposes when `param_visibility = "hashed"`. `verifier` is the address of the seller's deployed EZKL verifier. Anyone can read the registry, and the agent's seller list comes only from it.
 
 ### One paid request
 
 1. Agent picks a seller by policy (cheapest active seller with `bond >= MIN_BOND` that isn't slashed), reads `block = latest`, fetches features for the target address at that block from its own indexer, and converts them to field elements with the EZKL scale from `spec/features.json`.
 2. Agent sends `POST /v1/risk {address, block, inputFelts}`.
-3. Seller replies `402` with x402 PaymentRequirements: `scheme: "escrow"`, `network: "eip155:5042002"`, `asset: <USDC>`, `maxAmountRequired: price`, `payTo: <HonestEscrow>`, `extra: {seller, commitment, verifier, challengeWindow, deadline}`. The agent checks every field against the onchain registry and refuses on any mismatch.
+3. Seller replies `402` with x402 PaymentRequirements: `scheme: "escrow"`, `network: "eip155:5042002"`, `asset: <USDC>`, `maxAmountRequired: price`, `payTo: <ReceiptEscrow>`, `extra: {seller, commitment, verifier, challengeWindow, deadline}`. The agent checks every field against the onchain registry and refuses on any mismatch.
 4. Agent signs an EIP-3009 `ReceiveWithAuthorization` from itself to the escrow for `price`, with `nonce = keccak256(abi.encode(chainId, escrow, seller, inputHash, deadline))`, and retries with the `X-PAYMENT` header. The nonce binds the payment to this exact seller, input and deadline.
-5. Seller calls `HonestEscrow.open(seller, inputHash, deadline, auth)`. The escrow calls `USDC.receiveWithAuthorization`, recomputes the nonce from the arguments so the seller can't change the terms, and stores the job under `jobId = nonce`.
+5. Seller calls `ReceiptEscrow.open(seller, inputHash, deadline, auth)`. The escrow calls `USDC.receiveWithAuthorization`, recomputes the nonce from the arguments so the seller can't change the terms, and stores the job under `jobId = nonce`.
 6. Seller runs the model, proves, and calls `fulfill(jobId, outputFelts, proof)`. The full proof is in calldata so anyone can challenge it, and the escrow stores `keccak256(proof)`. The challenge window starts. The seller replies `200` with `{jobId, output, proof, txHash}` and an `X-PAYMENT-RESPONSE` header.
 7. Agent builds the instances itself as `[inputFelts, outputFelts, commitment]` in EZKL's instance order and calls `verifier.verifyProof` with `eth_call`, which costs nothing.
    - **Pass:** the agent acts on the score. Anyone can call `finalize(jobId)` once the window ends, which pays the seller.
@@ -94,7 +94,7 @@ Judges will ask this. The `eth_call` check is free, so an honest request costs o
 
 | `--mode` | What the process does | Why it fails |
 |---|---|---|
-| `honest` | Runs the committed model on the agent's input and proves it | It doesn't fail |
+| `zkr` | Runs the committed model on the agent's input and proves it | It doesn't fail |
 | `edit-output` | Proves honestly, then reports and posts a different output (for example "safe") | The output in the instances doesn't match the proof |
 | `swap-model` | Runs and proves a different, cheaper model whose weights don't match the registered commitment | The commitment instance doesn't match |
 | `fake-input` | Proves over altered features (zero drainer inflow, for example) | The contract's `inputHash` doesn't match the proven input |
@@ -111,7 +111,7 @@ The agent never knows which mode a seller runs. It finds out only through verifi
 
 ## Features and Streams (Person B, with A for the spec)
 
-**Stream:** Arc testnet, dataset `block_with_receipts` (or `receipts`, whichever the Streams UI offers for Arc). The filter function keeps only logs where `address` is the USDC contract and `topic0` is `Transfer`, plus all logs from `HonestEscrow`, and returns a trimmed payload of block, tx hash, log index, from, to, value and event. Destination: webhook to the indexer. Backfill starts from the block where seeding began. Delivery is in order, and the indexer is idempotent on `(txHash, logIndex)`.
+**Stream:** Arc testnet, dataset `block_with_receipts` (or `receipts`, whichever the Streams UI offers for Arc). The filter function keeps only logs where `address` is the USDC contract and `topic0` is `Transfer`, plus all logs from `ReceiptEscrow`, and returns a trimmed payload of block, tx hash, log index, from, to, value and event. Destination: webhook to the indexer. Backfill starts from the block where seeding began. Delivery is in order, and the indexer is idempotent on `(txHash, logIndex)`.
 
 **Features**, all computed by the indexer from USDC transfers at or before `block` (the exact list, transforms and scale go in `spec/features.json`):
 
@@ -131,11 +131,11 @@ The agent never knows which mode a seller runs. It finds out only through verifi
 
 CLI commands:
 
-- `honest sellers`: registry table with commitment, price, bond, status and endpoint
-- `honest check <address>`: buys one risk check and prints each step
-- `honest pay <address> <amount>`: runs a check first, then sends USDC only if the policy allows it
-- `honest receipt <jobId>`: prints the receipt and the URL of the receipt page
-- `honest finalize`: finalizes jobs whose window has ended
+- `zkr sellers`: registry table with commitment, price, bond, status and endpoint
+- `zkr check <address>`: buys one risk check and prints each step
+- `zkr pay <address> <amount>`: runs a check first, then sends USDC only if the policy allows it
+- `zkr receipt <jobId>`: prints the receipt and the URL of the receipt page
+- `zkr finalize`: finalizes jobs whose window has ended
 
 **Decision loop** (documented in the README for the Agentic track):
 
@@ -174,7 +174,7 @@ Both register real commitments and real bonds. Either can be restarted in anothe
 |---|---|
 | 0:00 to 0:35 | The problem. Agents pay for answers, nobody checks which model gave them, and FlashProve shows the cryptography works but is too expensive for every request today. |
 | 0:35 to 0:55 | One architecture slide: commit, pay into escrow, prove, verify, slash. |
-| 0:55 to 2:50 | Live. `honest sellers` shows two bonded sellers. `honest pay <drainer> 5` picks CheapRisk, gets a 402, opens the escrow, receives "risk 0.03, safe" with a proof, verify fails, challenges, onchain verify fails, bond slashed, refund. The Arc explorer shows the slash tx. The agent moves on to RiskOne and gets "risk 0.94", verify passes, and it refuses to send the 5 USDC. Then `honest pay <merchant> 5` passes and pays. Open the receipt page and press "Verify again". |
+| 0:55 to 2:50 | Live. `zkr sellers` shows two bonded sellers. `zkr pay <drainer> 5` picks CheapRisk, gets a 402, opens the escrow, receives "risk 0.03, safe" with a proof, verify fails, challenges, onchain verify fails, bond slashed, refund. The Arc explorer shows the slash tx. The agent moves on to RiskOne and gets "risk 0.94", verify passes, and it refuses to send the 5 USDC. Then `zkr pay <merchant> 5` passes and pays. Open the receipt page and press "Verify again". |
 | 2:50 to 3:30 | Numbers: proof time, verify gas on Arc, cost per check, challenge cost. All measured. |
 | 3:30 to 4:00 | Next: the escrow works with any committed model, so as FlashProve-style proofs get cheaper, bigger models plug into the same contract. |
 
@@ -202,7 +202,7 @@ Times are hours before the 12:00 PM CST deadline (T-16 is about 8 PM CST on Nov 
 
 **A:** `spec/features.json` and `spec/vectors.json` (first, by T-13, so B can build the indexer against them). Then the simulator and training, then the honest and swap models with artifacts, then the seller server (402, open, prove, fulfill) with all four modes.
 
-**B:** `HonestEscrow.sol` with Foundry tests for every state change, including challenge success and failure. Deploy and write `deployments/arc-testnet.json`. Then the indexer and features API against the vectors, then the agent CLI: registry, policy, x402 client, verify, challenge, finalize.
+**B:** `ReceiptEscrow.sol` with Foundry tests for every state change, including challenge success and failure. Deploy and write `deployments/arc-testnet.json`. Then the indexer and features API against the vectors, then the agent CLI: registry, policy, x402 client, verify, challenge, finalize.
 
 **Checkpoint 1 at T-9:** one honest paid request end to end on Arc testnet, with features from the Stream-fed indexer and a real proof. If this slips past T-8, cut the receipt page and `fake-input`.
 
@@ -228,7 +228,7 @@ Finalists are told by midnight Nov 20. Rehearse the 4 minute pitch with a timer,
 ## Cut list (cut from the top)
 
 1. "Verify again" button (the page still shows the receipt)
-2. Receipt page entirely (`honest receipt` prints it in the terminal)
+2. Receipt page entirely (`zkr receipt` prints it in the terminal)
 3. `fake-input` mode
 4. `swap-model` mode
 5. Human-approval prompt in the policy
@@ -275,7 +275,8 @@ Never cut: real proofs, the 402 flow, escrow plus the onchain challenge and slas
 ## Progress log
 
 - Nov 19: PLAN.md, AGENTS.md and CLAUDE.md written. Nothing built yet.
-- Nov 19, 5:00 to 5:35 AM CST: EZKL pipeline, verifier on Arc (735k gas per verify), HonestEscrow with 14 tests, both models trained with shared verifying key, seller with 4 modes, agent CLI, web indexer and receipts (not deployed yet), seeding running. Waiting on: Neon terms, QuickNode account.
-- Nov 19, 6:00 AM CST: escrow redeployed (fulfill carries the input). Web app live at https://honest-model.vercel.app with Neon. Protocol e2e on Arc passes for all four seller modes: honest verifies; edit-output, swap-model and fake-input are each challenged and slashed (challenge about 755k gas). Seeded demo wallets in deployments/demo-wallets.json. Waiting on: QuickNode account (the Stream is the last missing piece for `honest pay`).
+- Nov 19, 5:00 to 5:35 AM CST: EZKL pipeline, verifier on Arc (735k gas per verify), ReceiptEscrow with 14 tests, both models trained with shared verifying key, seller with 4 modes, agent CLI, web indexer and receipts (not deployed yet), seeding running. Waiting on: Neon terms, QuickNode account.
+- Nov 19, 6:00 AM CST: escrow redeployed (fulfill carries the input). Web app live at https://zkreceipt.vercel.app with Neon. Protocol e2e on Arc passes for all four seller modes: honest verifies; edit-output, swap-model and fake-input are each challenged and slashed (challenge about 755k gas). Seeded demo wallets in deployments/demo-wallets.json. Waiting on: QuickNode account (the Stream is the last missing piece for `zkr pay`).
 - Nov 20, 12:30 AM CST: QuickNode Stream 843cb3a4 created (filter tested on real blocks; fixed escrow placeholder substitution), backfilling from block 73010098 into Neon. Agent `pay --trust` mode for the plain-x402 comparison. scripts/demo_up.py starts sellers from deployments/demo.json and makes a fresh cheater when the last one is slashed.
 - Nov 20, 1:00 AM CST: Stream caught up to the tip. Full demo flow ran on Arc from the Stream-fed index: `pay --trust` paid the drainer on CheapRisk's fake 0.005; `pay` caught CheapRisk, slashed it, got 0.9999 from RiskOne and refused; `pay` to the normal wallet verified and paid. Receipt pages and in-browser re-verification checked for both outcomes. README and DEVPOST.md written. Repo is public. Left: demo video (waiting for Alara), Devpost submission.
+- Nov 20, 1:20 AM CST: renamed the project to zkReceipt: ReceiptEscrow (source and ABI names; the deployed contract is unchanged), `zkr` CLI, site at https://zkreceipt.vercel.app (Vercel project zkreceipt), Stream webhook moved to the new domain. Fixed the index's synced-block check, which reported false gaps when batches overlapped.

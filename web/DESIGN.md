@@ -25,7 +25,7 @@ IBM Plex Sans for text and IBM Plex Mono for the values that are code: addresses
 ```
 slip ground
   ┌ sheet (max 760px, left edge aligned to a 24px gutter on phones) ─────────┐
-  │ Honest Model receipt                                   [stamp]          │
+  │ zkReceipt receipt                                   [stamp]          │
   │ risk 0.9993   for 0xab12…ef  at block 73,010,512                         │
   │──────────────────────────────────────────────────────────────────────────│
   │ model     commitment 0x33db…  seller 0x5B95…  price 0.01 USDC            │

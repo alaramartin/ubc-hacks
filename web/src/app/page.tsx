@@ -36,7 +36,7 @@ export default function Home() {
   return (
     <main className="wrap">
       <article className="sheet">
-        <p className="kicker">Honest Model receipts</p>
+        <p className="kicker">zkReceipt</p>
         <p className="lede">
           Each job is an agent paying for a risk score into escrow on Arc. The seller answers with a zk proof
           that its committed model produced the score from the agent&apos;s input. Bad proofs get the seller slashed.

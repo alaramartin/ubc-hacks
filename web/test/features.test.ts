@@ -31,7 +31,7 @@ test("web copy of the features spec matches spec/features.json", () => {
 test("web copies of deployments match the repo", () => {
   for (const [a, b] of [
     ["../../deployments/arc-testnet.json", "../src/lib/deploy/arc-testnet.json"],
-    ["../../deployments/abi/HonestEscrow.json", "../src/lib/deploy/HonestEscrow.json"],
+    ["../../deployments/abi/ReceiptEscrow.json", "../src/lib/deploy/ReceiptEscrow.json"],
     ["../../deployments/abi/Halo2Verifier.json", "../src/lib/deploy/Halo2Verifier.json"],
     ["../../model/artifacts/riskone/settings.json", "../src/lib/deploy/circuit.json"],
   ]) {

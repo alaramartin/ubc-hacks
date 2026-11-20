@@ -2,7 +2,7 @@
  * x402 client for the "escrow" scheme.
  *
  * Transport is standard x402 (402 + PaymentRequirements, X-PAYMENT, X-PAYMENT-RESPONSE). The scheme
- * pays into HonestEscrow with an EIP-3009 ReceiveWithAuthorization whose nonce is the job id,
+ * pays into ReceiptEscrow with an EIP-3009 ReceiveWithAuthorization whose nonce is the job id,
  * binding the payment to one seller, one input hash and one deadline.
  */
 import { getAddress, hashDomain, type Address, type Hex } from "viem";
@@ -78,7 +78,7 @@ async function validate(req: Requirements, seller: SellerView, ih: Hex, maxPrice
   };
   if (req.scheme !== "escrow") fail(`unsupported scheme ${req.scheme}`);
   if (req.network !== NETWORK) fail(`wrong network ${req.network}`);
-  if (getAddress(req.payTo) !== getAddress(deployment.escrow)) fail("payTo is not the HonestEscrow contract");
+  if (getAddress(req.payTo) !== getAddress(deployment.escrow)) fail("payTo is not the ReceiptEscrow contract");
   if (getAddress(req.asset) !== getAddress(deployment.usdc)) fail("asset is not USDC");
   if (getAddress(req.extra.seller) !== getAddress(seller.address)) fail("402 names a different seller");
   if (BigInt(req.extra.commitment) !== seller.commitment) fail("402 commitment differs from the onchain registry");
@@ -156,7 +156,7 @@ export async function buy(
   ).toString("base64");
 
   // Remember the job before paying, so a seller that takes the payment and never answers can be
-  // refunded after the deadline (honest finalize).
+  // refunded after the deadline (zkr finalize).
   recordJob(req.extra.nonce, seller.address, body.address, "Open");
   const second = await fetch(url, { method: "POST", headers: { ...headers, "x-payment": xPayment }, body: payload });
   if (!second.ok) throw new Error(`seller returned ${second.status}: ${await second.text()}`);

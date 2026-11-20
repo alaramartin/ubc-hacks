@@ -38,7 +38,7 @@ export type Policy = {
 };
 
 export const deployment = readJson<Deployment>("deployments/arc-testnet.json");
-export const escrowAbi = readJson<Abi>("deployments/abi/HonestEscrow.json");
+export const escrowAbi = readJson<Abi>("deployments/abi/ReceiptEscrow.json");
 export const verifierAbi = readJson<Abi>("deployments/abi/Halo2Verifier.json");
 export const policy = readJson<Policy>("agent/policy.json");
 

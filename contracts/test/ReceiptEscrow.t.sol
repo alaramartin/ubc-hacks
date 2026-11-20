@@ -2,14 +2,14 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {HonestEscrow, IUSDC, IHalo2Verifier} from "../src/HonestEscrow.sol";
+import {ReceiptEscrow, IUSDC, IHalo2Verifier} from "../src/ReceiptEscrow.sol";
 import {Halo2Verifier} from "../src/Halo2Verifier.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
 
-contract HonestEscrowTest is Test {
+contract ReceiptEscrowTest is Test {
     MockUSDC usdc;
     Halo2Verifier verifier;
-    HonestEscrow escrow;
+    ReceiptEscrow escrow;
 
     uint256 buyerKey = 0xB0B;
     address buyer;
@@ -30,7 +30,7 @@ contract HonestEscrowTest is Test {
         buyer = vm.addr(buyerKey);
         usdc = new MockUSDC();
         verifier = new Halo2Verifier();
-        escrow = new HonestEscrow(
+        escrow = new ReceiptEscrow(
             IUSDC(address(usdc)), IHalo2Verifier(address(verifier)), 7, 1, BOND, SLASH, WINDOW, 3_000_000
         );
 
@@ -49,7 +49,7 @@ contract HonestEscrowTest is Test {
         vm.stopPrank();
     }
 
-    function _auth(bytes32 inputHash, uint64 deadline) internal view returns (HonestEscrow.Authorization memory a) {
+    function _auth(bytes32 inputHash, uint64 deadline) internal view returns (ReceiptEscrow.Authorization memory a) {
         bytes32 nonce = escrow.jobNonce(seller, inputHash, deadline);
         a.from = buyer;
         a.value = PRICE;
@@ -87,13 +87,13 @@ contract HonestEscrowTest is Test {
         vm.prank(seller);
         escrow.fulfill(id, input, output, proof);
 
-        vm.expectRevert(HonestEscrow.WindowOpen.selector);
+        vm.expectRevert(ReceiptEscrow.WindowOpen.selector);
         escrow.finalize(id);
 
         vm.warp(block.timestamp + WINDOW);
         escrow.finalize(id);
         assertEq(usdc.balanceOf(seller), PRICE);
-        assertEq(uint8(escrow.getJob(id).status), uint8(HonestEscrow.Status.Finalized));
+        assertEq(uint8(escrow.getJob(id).status), uint8(ReceiptEscrow.Status.Finalized));
     }
 
     function test_challengeOnValidProofReverts() public {
@@ -101,7 +101,7 @@ contract HonestEscrowTest is Test {
         vm.prank(seller);
         escrow.fulfill(id, input, output, proof);
         vm.prank(watcher);
-        vm.expectRevert(HonestEscrow.ProofValid.selector);
+        vm.expectRevert(ReceiptEscrow.ProofValid.selector);
         escrow.challenge{gas: 5_000_000}(id, input, proof);
     }
 
@@ -110,7 +110,7 @@ contract HonestEscrowTest is Test {
         vm.prank(seller);
         escrow.fulfill(id, input, output, proof);
         vm.prank(watcher);
-        vm.expectRevert(HonestEscrow.NotEnoughGas.selector);
+        vm.expectRevert(ReceiptEscrow.NotEnoughGas.selector);
         escrow.challenge{gas: 1_500_000}(id, input, proof);
     }
 
@@ -138,7 +138,7 @@ contract HonestEscrowTest is Test {
         escrow.fulfill(id, realInput, output, proof);
         vm.prank(watcher);
         escrow.challenge{gas: 5_000_000}(id, realInput, proof);
-        assertEq(uint8(escrow.getJob(id).status), uint8(HonestEscrow.Status.Slashed));
+        assertEq(uint8(escrow.getJob(id).status), uint8(ReceiptEscrow.Status.Slashed));
     }
 
     function test_otherModelGetsSlashed() public {
@@ -164,7 +164,7 @@ contract HonestEscrowTest is Test {
         escrow.fulfill(id, input, output, proof);
         uint256[] memory forged = input;
         forged[0] += 1;
-        vm.expectRevert(HonestEscrow.InputMismatch.selector);
+        vm.expectRevert(ReceiptEscrow.InputMismatch.selector);
         escrow.challenge(id, forged, proof);
     }
 
@@ -173,7 +173,7 @@ contract HonestEscrowTest is Test {
         vm.prank(seller);
         escrow.fulfill(id, input, output, proof);
         bytes memory other = bytes.concat(proof, hex"00");
-        vm.expectRevert(HonestEscrow.ProofMismatch.selector);
+        vm.expectRevert(ReceiptEscrow.ProofMismatch.selector);
         escrow.challenge(id, input, other);
     }
 
@@ -182,13 +182,13 @@ contract HonestEscrowTest is Test {
         vm.prank(seller);
         escrow.fulfill(id, input, output, proof);
         vm.warp(block.timestamp + WINDOW);
-        vm.expectRevert(HonestEscrow.WindowClosed.selector);
+        vm.expectRevert(ReceiptEscrow.WindowClosed.selector);
         escrow.challenge(id, input, proof);
     }
 
     function test_refundWhenNotFulfilled() public {
         bytes32 id = _open(input);
-        vm.expectRevert(HonestEscrow.DeadlineNotPassed.selector);
+        vm.expectRevert(ReceiptEscrow.DeadlineNotPassed.selector);
         escrow.refund(id);
         vm.warp(block.timestamp + 301);
         escrow.refund(id);
@@ -198,7 +198,7 @@ contract HonestEscrowTest is Test {
     function test_sellerCannotChangeTerms() public {
         bytes32 h = keccak256(abi.encodePacked(input));
         uint64 deadline = uint64(block.timestamp + 300);
-        HonestEscrow.Authorization memory a = _auth(h, deadline);
+        ReceiptEscrow.Authorization memory a = _auth(h, deadline);
         bytes32 otherHash = keccak256("other input");
         vm.expectRevert(bytes("bad sig"));
         escrow.open(seller, otherHash, deadline, a);
@@ -208,13 +208,13 @@ contract HonestEscrowTest is Test {
         bytes32 id = _open(input);
         uint256[] memory other = new uint256[](7);
         vm.prank(seller);
-        vm.expectRevert(HonestEscrow.InputMismatch.selector);
+        vm.expectRevert(ReceiptEscrow.InputMismatch.selector);
         escrow.fulfill(id, other, output, proof);
     }
 
     function test_onlySellerFulfills() public {
         bytes32 id = _open(input);
-        vm.expectRevert(HonestEscrow.NotSeller.selector);
+        vm.expectRevert(ReceiptEscrow.NotSeller.selector);
         escrow.fulfill(id, input, output, proof);
     }
 
@@ -222,8 +222,8 @@ contract HonestEscrowTest is Test {
         test_editedOutputGetsSlashed();
         bytes32 h = keccak256(abi.encodePacked(input));
         uint64 deadline = uint64(block.timestamp + 400);
-        HonestEscrow.Authorization memory a = _auth(h, deadline);
-        vm.expectRevert(HonestEscrow.SellerSlashed.selector);
+        ReceiptEscrow.Authorization memory a = _auth(h, deadline);
+        vm.expectRevert(ReceiptEscrow.SellerSlashed.selector);
         escrow.open(seller, h, deadline, a);
     }
 }

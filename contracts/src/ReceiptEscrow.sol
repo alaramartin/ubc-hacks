@@ -21,7 +21,7 @@ interface IHalo2Verifier {
     function verifyProof(bytes calldata proof, uint256[] calldata instances) external returns (bool);
 }
 
-/// @title HonestEscrow
+/// @title ReceiptEscrow
 /// @notice Escrow for paid model inference where the seller proves, with an EZKL proof, that its
 /// committed model produced the answer from the buyer's input. Payment settles optimistically:
 /// the seller is paid after a challenge window unless someone shows the proof is invalid, in which
@@ -30,7 +30,7 @@ interface IHalo2Verifier {
 /// Proof instances are laid out as [commitment, input[0..n), output[0..m)] (see spec/instances.md).
 /// The verifier is shared per model architecture: its verifying key does not depend on the weights,
 /// so a seller's model is identified only by its commitment (the Poseidon hash of its weights).
-contract HonestEscrow {
+contract ReceiptEscrow {
     enum Status {
         None,
         Open,

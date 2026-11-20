@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
-import {HonestEscrow, IUSDC, IHalo2Verifier} from "../src/HonestEscrow.sol";
+import {ReceiptEscrow, IUSDC, IHalo2Verifier} from "../src/ReceiptEscrow.sol";
 import {Halo2Verifier} from "../src/Halo2Verifier.sol";
 
 /// Deploys the shared Halo2 verifier for the risk model architecture and the escrow.
@@ -12,7 +12,7 @@ contract Deploy is Script {
         uint256 key = vm.envUint("DEPLOYER_KEY");
         vm.startBroadcast(key);
         Halo2Verifier verifier = new Halo2Verifier();
-        HonestEscrow escrow = new HonestEscrow(
+        ReceiptEscrow escrow = new ReceiptEscrow(
             IUSDC(vm.envAddress("USDC_ADDRESS")),
             IHalo2Verifier(address(verifier)),
             vm.envUint("N_INPUTS"),

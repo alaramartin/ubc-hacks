@@ -136,7 +136,7 @@
    {
     "name": "",
     "type": "tuple",
-    "internalType": "struct HonestEscrow.Job",
+    "internalType": "struct ReceiptEscrow.Job",
     "components": [
      {
       "name": "buyer",
@@ -181,7 +181,7 @@
      {
       "name": "status",
       "type": "uint8",
-      "internalType": "enum HonestEscrow.Status"
+      "internalType": "enum ReceiptEscrow.Status"
      },
      {
       "name": "output",
@@ -331,7 +331,7 @@
    {
     "name": "auth",
     "type": "tuple",
-    "internalType": "struct HonestEscrow.Authorization",
+    "internalType": "struct ReceiptEscrow.Authorization",
     "components": [
      {
       "name": "from",
@@ -825,7 +825,7 @@
    {
     "name": "status",
     "type": "uint8",
-    "internalType": "enum HonestEscrow.Status"
+    "internalType": "enum ReceiptEscrow.Status"
    }
   ]
  },

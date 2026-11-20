@@ -1,24 +1,24 @@
-# Honest Model
+# zkReceipt
 
 Agents pay for model answers they can't check. Before an agent sends money to an address it can buy a risk score for that address, but nothing tells it whether the score came from the model the seller advertises, or from a cheaper model, or was typed in by hand.
 
-Honest Model is an x402 payment layer on Arc where the agent only pays for answers the committed model actually gave:
+zkReceipt is an x402 payment layer on Arc where the agent only pays for answers the committed model actually gave:
 
-1. A seller registers a hash of its secret model weights in the `HonestEscrow` contract and posts a USDC bond.
+1. A seller registers a hash of its secret model weights in the `ReceiptEscrow` contract and posts a USDC bond.
 2. The agent computes the model's input itself, from its own QuickNode Stream index of Arc USDC transfers.
 3. The agent pays through x402, but the payment goes into escrow, not to the seller.
 4. The seller answers with an EZKL zk proof that the committed weights, run on the agent's input, produced the answer. The weights stay secret.
 5. The agent checks the proof for free with `eth_call`. A good answer pays the seller after a 60 second challenge window. A bad one gets challenged: the contract verifies the proof itself, refunds the agent and slashes the seller's bond.
 
-Receipts for every job: https://honest-model.vercel.app
+Receipts for every job: https://zkreceipt.vercel.app
 
 ## What the demo shows
 
 Two sellers offer the same risk check. RiskOne is honest and charges 0.01 USDC. CheapRisk charges 0.005 USDC and edits its scores to say "safe". The agent is never told which one cheats.
 
-A plain x402 buyer (`honest pay --trust`) asks the cheapest seller about a drainer wallet, gets a score of 0.005 and pays the drainer 0.05 USDC ([tx](https://testnet.arcscan.app/tx/0x684a51aaae74f8d8eadfb90f644ef940b450c27905cb2e094d257159900f8e44)).
+A plain x402 buyer (`zkr pay --trust`) asks the cheapest seller about a drainer wallet, gets a score of 0.005 and pays the drainer 0.05 USDC ([tx](https://testnet.arcscan.app/tx/0x684a51aaae74f8d8eadfb90f644ef940b450c27905cb2e094d257159900f8e44)).
 
-The Honest Model agent (`honest pay`) asks the same seller about the same wallet:
+The zkReceipt agent (`zkr pay`) asks the same seller about the same wallet:
 
 ```
 seller       CheapRisk 0x9872…b758  price 0.005 USDC  bond 0.5 USDC  (cheapest of 2 eligible)
@@ -32,13 +32,13 @@ verify       proof checks out against commitment, our input and the posted outpu
  REFUSE  proven risk 0.9999 is at or above 0.5; 0.05 USDC stays in the agent's wallet
 ```
 
-Transactions from that run: [challenge and slash](https://testnet.arcscan.app/tx/0x25c244fdd6edf0e962f1ddbb48abb855085e17f39ed63bcce4f8678cf4be4b55), [RiskOne's answer](https://testnet.arcscan.app/tx/0xfd89a3b9bb0b73c426be072c7f091e45dce9902c40f76ea40dbc65b9b1fb008d), [receipt page](https://honest-model.vercel.app/r/0x6525a70eee69305533a6282054c722e3a80121f9704d42ba59f74c793fbdc306).
+Transactions from that run: [challenge and slash](https://testnet.arcscan.app/tx/0x25c244fdd6edf0e962f1ddbb48abb855085e17f39ed63bcce4f8678cf4be4b55), [RiskOne's answer](https://testnet.arcscan.app/tx/0xfd89a3b9bb0b73c426be072c7f091e45dce9902c40f76ea40dbc65b9b1fb008d), [receipt page](https://zkreceipt.vercel.app/r/0x6525a70eee69305533a6282054c722e3a80121f9704d42ba59f74c793fbdc306).
 
 The seller has four modes, picked when the process starts, and each one is a real code path:
 
 | Mode | What the seller does | What happens |
 |---|---|---|
-| `honest` | Runs the committed model on the agent's input | Proof verifies, seller is paid |
+| `zkr` | Runs the committed model on the agent's input | Proof verifies, seller is paid |
 | `edit-output` | Proves honestly, then posts a different score | Proof fails against the posted output, slashed |
 | `swap-model` | Runs a cheaper model with the same architecture | Proof fails against the committed weights, slashed |
 | `fake-input` | Changes some of the agent's features before proving | Proof fails against the agent's input hash, slashed |
@@ -49,18 +49,18 @@ All four were run against Arc testnet. A `swap-model` seller gets slashed even w
 
 ```
             QuickNode Stream (arc-testnet, logs)
-                 │  USDC transfers + HonestEscrow events
+                 │  USDC transfers + ReceiptEscrow events
                  ▼
   web/ on Vercel: /api/streams ──► Neon Postgres ──► /api/features/:address
                                          │                   │
                                          ▼                   ▼
-                                  /r/<jobId> receipts    agent/ (honest CLI)
+                                  /r/<jobId> receipts    agent/ (zkr CLI)  
                                                              │ x402: 402, then X-PAYMENT
                                                              ▼
                                                    seller/ (FastAPI + EZKL)
                                                              │ open / fulfill
                                                              ▼
-                               Arc testnet: HonestEscrow ──► Halo2Verifier
+                               Arc testnet: ReceiptEscrow ──► Halo2Verifier
 ```
 
 | Part | Directory | Stack |
@@ -76,13 +76,13 @@ All four were run against Arc testnet. A `swap-model` seller gets slashed even w
 
 | Contract | Address | What it does |
 |---|---|---|
-| `HonestEscrow` | [`0xb292Ca92b5Cc6f621Ca15f2eb05f5066305b2905`](https://testnet.arcscan.app/address/0xb292Ca92b5Cc6f621Ca15f2eb05f5066305b2905) | Seller registry with bonds, x402 escrow, challenge and slash |
+| `ReceiptEscrow` | [`0xb292Ca92b5Cc6f621Ca15f2eb05f5066305b2905`](https://testnet.arcscan.app/address/0xb292Ca92b5Cc6f621Ca15f2eb05f5066305b2905) | Seller registry with bonds, x402 escrow, challenge and slash |
 | `Halo2Verifier` | [`0xAa0B5BABb4E8A9f189712690457bDF30aFC9777f`](https://testnet.arcscan.app/address/0xAa0B5BABb4E8A9f189712690457bDF30aFC9777f) | EZKL-generated verifier for the risk model's circuit |
 | USDC | `0x3600000000000000000000000000000000000000` | Arc's native USDC (ERC-20 interface, EIP-3009) |
 
 Everything is paid in USDC, which is also Arc's gas token, so the agent holds one asset. A verified proof costs about 735k gas, a challenge about 755k, roughly 0.02 USDC at testnet prices.
 
-How a job moves through `HonestEscrow`:
+How a job moves through `ReceiptEscrow`:
 
 - `registerSeller(commitment, price, bond, endpoint)` pulls the bond. The commitment is EZKL's Poseidon hash of the weights.
 - `open(seller, inputHash, deadline, auth)` pulls the price with `receiveWithAuthorization`. The authorization's nonce is `keccak256(chainId, escrow, seller, inputHash, deadline)`, so the agent's signature only works for that seller, that input and that deadline. The seller can't change the terms after the agent signs.
@@ -111,7 +111,7 @@ The agent computes the model's input itself, so it needs its own view of who sen
 | Dataset | `logs` |
 | Start | block 73,010,098 (start of demo seeding), then live |
 | Filter | `web/stream/filter.js` |
-| Destination | Webhook to `https://honest-model.vercel.app/api/streams`, HMAC-signed with a shared secret |
+| Destination | Webhook to `https://zkreceipt.vercel.app/api/streams`, HMAC-signed with a shared secret |
 | Created by | `scripts/create-stream.mjs` (runs `test_filter` on a real block first) |
 
 The agent, the sellers and the scripts also use a QuickNode Arc testnet endpoint as their RPC. The receipt pages use Arc's public RPC, so no endpoint token reaches the browser.
@@ -119,7 +119,7 @@ The agent, the sellers and the scripts also use a QuickNode Arc testnet endpoint
 The filter keeps two kinds of log and drops everything else:
 
 - **USDC `Transfer` logs from Arc's native emitter `0xff…fe`.** On Arc every USDC movement emits a log from this system address, including native gas-token transfers. An ERC-20 call also emits a copy from the USDC contract, so the filter reads only the emitter and nothing is counted twice. Values are converted from 18 decimals to USDC's 6.
-- **Every log from `HonestEscrow`**, kept raw. The receipt pages decode them.
+- **Every log from `ReceiptEscrow`**, kept raw. The receipt pages decode them.
 
 Each batch comes back as one compact object with its block range, including empty batches. `/api/streams` checks the signature, stores transfers and events in Neon, and records the range, so the features API knows which block it has fully synced (the highest block with no gaps below it). `/api/features/:address` computes the seven features from `spec/features.json` at that block.
 
@@ -127,7 +127,7 @@ The Python simulator and the TypeScript indexer both implement `spec/features.js
 
 ## The agent's decision loop
 
-`honest pay <address> <amount>` runs this, with every limit read from `agent/policy.json`:
+`zkr pay <address> <amount>` runs this, with every limit read from `agent/policy.json`:
 
 1. Refuse if the payment would go over the daily budget.
 2. Get the address's features from the Stream-fed index and quantize them.
@@ -148,7 +148,7 @@ The Python simulator and the TypeScript indexer both implement `spec/features.js
 | `approvalAbove` | 1 USDC needs a typed "yes" |
 | `maxSellerAttempts` | 3 |
 
-The agent has no list of good or bad sellers or addresses. It learns that a seller cheats only from a failed proof. `honest finalize` releases payment for jobs whose window has passed, and refunds jobs a seller took but never answered.
+The agent has no list of good or bad sellers or addresses. It learns that a seller cheats only from a failed proof. `zkr finalize` releases payment for jobs whose window has passed, and refunds jobs a seller took but never answered.
 
 ## Running it
 
@@ -178,10 +178,10 @@ node --env-file=.env scripts/create-stream.mjs --webhook https://<app>/api/strea
 
 # agent, in another terminal
 cd agent && pnpm i
-pnpm honest sellers
-pnpm honest pay <address> 0.05 --trust    # plain x402 buyer, for comparison
-pnpm honest pay <address> 0.05
-pnpm honest finalize
+pnpm zkr sellers
+pnpm zkr pay <address> 0.05 --trust    # plain x402 buyer, for comparison
+pnpm zkr pay <address> 0.05
+pnpm zkr finalize
 ```
 
 Seller weights (`weights.pt`, `network.onnx`, `network.ezkl`, `pk.key`) are never committed, since keeping them secret is the point. `settings.json`, `vk.key`, `Verifier.sol` and `commitment.json` are in the repo.

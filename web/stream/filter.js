@@ -2,7 +2,7 @@
 // Keeps two kinds of logs:
 //   1. USDC Transfer logs from Arc's native USDC system emitter (EIP-7708), which records every
 //      USDC movement. Values are converted from 18 to 6 decimals. These feed the risk features.
-//   2. Every log from the HonestEscrow contract, kept raw. These feed the receipt pages.
+//   2. Every log from the ReceiptEscrow contract, kept raw. These feed the receipt pages.
 // Returns one compact object per batch, including empty batches, so the indexer knows how far it
 // has synced. __ESCROW__ is replaced with the escrow address when the stream is created.
 function main(stream) {

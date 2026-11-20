@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy the shared verifier (from model/artifacts/riskone) and HonestEscrow to Arc testnet,
+# Deploy the shared verifier (from model/artifacts/riskone) and ReceiptEscrow to Arc testnet,
 # then write deployments/arc-testnet.json and the ABIs.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -31,7 +31,7 @@ d = {
     "circuit": "model/artifacts/riskone/settings.json",
 }
 open(f"{root}/deployments/arc-testnet.json", "w").write(json.dumps(d, indent=2) + "\n")
-for c in ["HonestEscrow", "Halo2Verifier"]:
+for c in ["ReceiptEscrow", "Halo2Verifier"]:
     abi = json.load(open(f"{root}/contracts/out/{c}.sol/{c}.json"))["abi"]
     json.dump(abi, open(f"{root}/deployments/abi/{c}.json", "w"), indent=1)
 print(json.dumps(d, indent=2))

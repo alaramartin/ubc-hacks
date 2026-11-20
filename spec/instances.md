@@ -12,7 +12,7 @@ A proof has one instance column with 9 field elements (BN254 scalar field):
 | 1 to 7 | The 7 input features, quantized at `input_scale` |
 | 8 | The output logit, quantized at the output scale |
 
-`HonestEscrow.instancesOf(commitment, input, output)` builds exactly this array.
+`ReceiptEscrow.instancesOf(commitment, input, output)` builds exactly this array.
 
 ## Quantization
 

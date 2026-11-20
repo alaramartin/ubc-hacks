@@ -7,7 +7,7 @@ import { addrUrl, DEPLOYMENT, INPUT_SCALE, signed, txUrl } from "@/lib/chain";
 import { FEATURE_NAMES } from "@/lib/features";
 import { loadReceipt, type Receipt } from "@/lib/receipt";
 
-export const metadata = { title: "Receipt · Honest Model" };
+export const metadata = { title: "Receipt · zkReceipt" };
 
 const usdc = (u: bigint) => `${(Number(u) / 1e6).toLocaleString(undefined, { maximumFractionDigits: 6 })} USDC`;
 const hex32 = (n: bigint) => "0x" + n.toString(16).padStart(64, "0");
@@ -53,7 +53,7 @@ async function ReceiptView({ params }: { params: Promise<{ jobId: string }> }) {
     <article className="sheet">
       <div className="top">
         <div>
-          <p className="kicker">Honest Model receipt</p>
+          <p className="kicker">zkReceipt</p>
           <p className="score">{r.risk === null ? "No answer" : `risk ${r.risk.toFixed(4)}`}</p>
           <p className="for">
             job <span className="mono">{jobId.slice(0, 14)}…</span>

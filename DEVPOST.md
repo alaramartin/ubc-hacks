@@ -2,7 +2,7 @@
 
 Paste each section into the matching Devpost field.
 
-**Project name:** Honest Model
+**Project name:** zkReceipt
 
 **Tagline:** Agents only pay for answers the committed model actually gave. Lying costs the seller its bond.
 
@@ -10,8 +10,8 @@ Paste each section into the matching Devpost field.
 
 **Links**
 - Repo: https://github.com/alaramartin/ubc-hacks
-- Receipts: https://honest-model.vercel.app
-- HonestEscrow on Arc testnet: https://testnet.arcscan.app/address/0xb292Ca92b5Cc6f621Ca15f2eb05f5066305b2905
+- Receipts: https://zkreceipt.vercel.app
+- ReceiptEscrow on Arc testnet: https://testnet.arcscan.app/address/0xb292Ca92b5Cc6f621Ca15f2eb05f5066305b2905
 - Video: (add the YouTube or Drive link once it's uploaded)
 
 **Built with:** Arc, USDC, x402, EIP-3009, EZKL, Halo2, Solidity, Foundry, PyTorch, ONNX, FastAPI, TypeScript, viem, QuickNode Streams, Next.js, Vercel, Neon Postgres
@@ -20,7 +20,7 @@ Paste each section into the matching Devpost field.
 
 A payment layer for AI answers on Arc. A buyer agent pays for a risk score on a wallet address through x402, but the USDC goes into an escrow contract instead of to the seller. The seller has to answer with a zk proof that the model it committed to, run on the agent's own inputs, produced that score. If the proof is good, the seller gets paid after a short window. If it's bad, the agent challenges it, the contract checks the proof itself, and the seller's bond is slashed.
 
-It has four parts: the `HonestEscrow` contract with an EZKL-generated verifier on Arc testnet, a seller server that proves each answer, a terminal agent (`honest`) that pays, verifies and challenges, and a Next.js app that indexes Arc through a QuickNode Stream and shows a receipt page for every job.
+It has four parts: the `ReceiptEscrow` contract with an EZKL-generated verifier on Arc testnet, a seller server that proves each answer, a terminal agent (`zkr`) that pays, verifies and challenges, and a Next.js app that indexes Arc through a QuickNode Stream and shows a receipt page for every job.
 
 ## What problem does it solve?
 
@@ -30,7 +30,7 @@ In our demo a plain x402 buyer asks the cheapest seller about a drainer wallet, 
 
 ## How does it work?
 
-1. A seller registers a Poseidon hash of its secret model weights in `HonestEscrow` and posts a USDC bond.
+1. A seller registers a Poseidon hash of its secret model weights in `ReceiptEscrow` and posts a USDC bond.
 2. The agent computes the model's 7 input features itself, from its own index of Arc USDC transfers. A QuickNode Stream on `arc-testnet` logs filters Arc's native USDC transfer events and the escrow's events, and posts them to a webhook on Vercel, which stores them in Postgres.
 3. The agent calls the seller and gets an HTTP 402. It checks every field of the payment request against the chain, then signs an EIP-3009 authorization whose nonce binds the seller, the input hash and the deadline. The seller can't change the terms after the agent signs.
 4. The seller opens the job, which pulls the payment into escrow, runs its model in EZKL (about 3 seconds), and posts the input, output and proof with `fulfill`.

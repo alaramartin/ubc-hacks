@@ -45,7 +45,7 @@ export async function loadReceipt(jobId: Hex): Promise<Receipt | null> {
   const window = (await client().readContract({ address: DEPLOYMENT.escrow, abi: escrowAbi, functionName: "challengeWindow" })) as bigint;
   const indexedTo = await syncedBlock();
 
-  // Events come from the Stream-fed index (stream/filter.js keeps every HonestEscrow log).
+  // Events come from the Stream-fed index (stream/filter.js keeps every ReceiptEscrow log).
   const rows = (await sql().query(
     `select block, tx_hash, topics, data, ts from escrow_events where job_id = $1 order by block, log_index`,
     [jobId.toLowerCase()],

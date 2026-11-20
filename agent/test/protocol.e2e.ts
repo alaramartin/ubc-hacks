@@ -1,7 +1,7 @@
 /**
  * Protocol integration test against Arc testnet and locally running sellers.
  * Features come from spec/vectors.json instead of the Stream-fed indexer, so this exercises
- * x402, EIP-3009, HonestEscrow, EZKL proving, eth_call verification and challenges on their own.
+ * x402, EIP-3009, ReceiptEscrow, EZKL proving, eth_call verification and challenges on their own.
  *
  *   (terminal 1) cd seller && uv run python -m seller serve --key-env SELLER_HONEST_KEY --model riskone --mode honest --port 8001
  *   (terminal 2) cd seller && uv run python -m seller serve --key-env SELLER_CHEAP_KEY --model cheaprisk --mode edit-output --port 8002

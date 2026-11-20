@@ -13,7 +13,7 @@ from web3 import Web3
 
 ROOT = Path(__file__).resolve().parents[3]
 DEPLOYMENT = json.loads((ROOT / "deployments" / "arc-testnet.json").read_text())
-ESCROW_ABI = json.loads((ROOT / "deployments" / "abi" / "HonestEscrow.json").read_text())
+ESCROW_ABI = json.loads((ROOT / "deployments" / "abi" / "ReceiptEscrow.json").read_text())
 ERC20_ABI = [
     {"type": "function", "name": "approve", "stateMutability": "nonpayable",
      "inputs": [{"name": "s", "type": "address"}, {"name": "v", "type": "uint256"}], "outputs": [{"type": "bool"}]},

@@ -5,7 +5,7 @@ import { toEventSelector, type AbiEvent } from "viem";
 import { escrowAbi } from "@/lib/chain";
 import { SCHEMA, sql } from "@/lib/db";
 
-/** topic0 of every HonestEscrow event whose first indexed argument is the job id. */
+/** topic0 of every ReceiptEscrow event whose first indexed argument is the job id. */
 const JOB_TOPICS = new Set(
   escrowAbi
     .filter((x): x is AbiEvent => x.type === "event" && x.name.startsWith("Job"))

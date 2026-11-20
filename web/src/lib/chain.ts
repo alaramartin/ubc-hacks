@@ -1,7 +1,7 @@
 import { createPublicClient, defineChain, http, type Abi, type Address } from "viem";
 import circuit from "./deploy/circuit.json" with { type: "json" };
 import deployment from "./deploy/arc-testnet.json" with { type: "json" };
-import escrowAbiJson from "./deploy/HonestEscrow.json" with { type: "json" };
+import escrowAbiJson from "./deploy/ReceiptEscrow.json" with { type: "json" };
 import verifierAbiJson from "./deploy/Halo2Verifier.json" with { type: "json" };
 
 export const DEPLOYMENT = deployment as typeof deployment & { escrow: Address; verifier: Address; usdc: Address };

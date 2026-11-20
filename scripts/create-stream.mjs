@@ -61,7 +61,7 @@ console.log(
 if (process.argv.includes("--test-only")) process.exit(0);
 
 const stream = await call("POST", "/streams", {
-  name: "honest-model arc-testnet usdc + escrow",
+  name: "zkreceipt arc-testnet usdc + escrow",
   network: "arc-testnet",
   dataset: "logs",
   filter_function,
@@ -84,6 +84,6 @@ const stream = await call("POST", "/streams", {
     post_timeout_sec: 20,
   },
   status: "active",
-  external_id: "honest-model-arc-testnet",
+  external_id: `zkreceipt-arc-testnet-${from}`,
 });
 console.log(`stream ${stream.id} ${stream.status} from block ${from}`);
