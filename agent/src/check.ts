@@ -85,7 +85,7 @@ export async function trustingCheck(address: Address): Promise<CheckResult> {
   const f = await fetchFeatures(address);
   const felts = f.features.map((x) => quantize(x, INPUT_SCALE));
   const ih = inputHash(felts);
-  ui.step("features", `${f.features.length} features over ${f.transfers} USDC transfers, indexed by our Stream up to block ${f.block.toLocaleString()}`);
+  ui.step("prompt", `${f.features.length} features over ${f.transfers} USDC transfers, indexed by our Stream up to block ${f.block.toLocaleString()}`);
   const [s] = await eligibleSellers(new Set());
   if (!s) return { ok: false, reason: "no eligible seller", spent: 0n };
   if (spentToday() + s.price > BigInt(policy.dailyBudget)) return { ok: false, reason: "daily budget used up", spent: 0n };
@@ -106,7 +106,7 @@ export async function riskCheckWith(f: Features): Promise<CheckResult> {
   const address = f.address;
   const felts = f.features.map((x) => quantize(x, INPUT_SCALE));
   const ih = inputHash(felts);
-  ui.step("features", `${f.features.length} features over ${f.transfers} USDC transfers, indexed by our Stream up to block ${f.block.toLocaleString()}`);
+  ui.step("prompt", `${f.features.length} features over ${f.transfers} USDC transfers, indexed by our Stream up to block ${f.block.toLocaleString()}`);
   ui.note(f.names.map((n, i) => `${n}=${f.features[i].toFixed(3)}`).join("  "));
 
   const tried = new Set<string>();
@@ -151,13 +151,13 @@ export async function riskCheckWith(f: Features): Promise<CheckResult> {
     const t = Date.now();
     const valid = await verifiesOffchain(a.proof, instances);
     if (valid) {
-      ui.ok("verify", `proof checks out against commitment, our input and the posted output  ${pc.dim(`eth_call, ${Date.now() - t} ms, no gas`)}`);
+      ui.ok("verify", `proof checks out against commitment, our prompt and the posted output  ${pc.dim(`eth_call, ${Date.now() - t} ms, no gas`)}`);
       const rec = receiptsUrl();
       if (rec) ui.note(`receipt ${rec}/r/${a.jobId}`);
       return { ok: true, risk, logit, seller: s, jobId: a.jobId, spent };
     }
 
-    ui.bad("verify", `proof does NOT match commitment + our input + posted output  ${pc.dim(`eth_call, ${Date.now() - t} ms`)}`);
+    ui.bad("verify", `proof does NOT match commitment + our prompt + posted output  ${pc.dim(`eth_call, ${Date.now() - t} ms`)}`);
     const c = await challenge(a.jobId, felts, a.proof);
     ui.bad("challenge", `onchain verify failed: refunded ${ui.usdc(c.refunded)}, seller bond slashed ${ui.usdc(c.slashed)}  tx ${ui.tx(c.hash)}  ${pc.dim(`${c.gas.toLocaleString()} gas`)}`);
     recordJob(a.jobId, s.address, address, "Slashed");

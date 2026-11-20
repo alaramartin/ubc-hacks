@@ -94,7 +94,7 @@ Judges will ask this. The `eth_call` check is free, so an honest request costs o
 
 | `--mode` | What the process does | Why it fails |
 |---|---|---|
-| `zkr` | Runs the committed model on the agent's input and proves it | It doesn't fail |
+| `honest` | Runs the committed model on the agent's input and proves it | It doesn't fail |
 | `edit-output` | Proves honestly, then reports and posts a different output (for example "safe") | The output in the instances doesn't match the proof |
 | `swap-model` | Runs and proves a different, cheaper model whose weights don't match the registered commitment | The commitment instance doesn't match |
 | `fake-input` | Proves over altered features (zero drainer inflow, for example) | The contract's `inputHash` doesn't match the proven input |

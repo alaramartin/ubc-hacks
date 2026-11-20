@@ -78,7 +78,7 @@ async function ReceiptView({ params }: { params: Promise<{ jobId: string }> }) {
       </section>
 
       <section>
-        <h2>Input</h2>
+        <h2>Prompt</h2>
         {r.input ? (
           <div className="scroll">
             <table>
