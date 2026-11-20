@@ -77,6 +77,30 @@ export async function riskCheck(address: Address): Promise<CheckResult> {
   return riskCheckWith(await fetchFeatures(address));
 }
 
+/**
+ * What a plain x402 buyer does: pay the cheapest seller and believe the number it returns.
+ * The answer is read from chain like riskCheck does, but nothing is verified or challenged.
+ */
+export async function trustingCheck(address: Address): Promise<CheckResult> {
+  const f = await fetchFeatures(address);
+  const felts = f.features.map((x) => quantize(x, INPUT_SCALE));
+  const ih = inputHash(felts);
+  ui.step("features", `${f.features.length} features over ${f.transfers} USDC transfers, indexed by our Stream up to block ${f.block.toLocaleString()}`);
+  const [s] = await eligibleSellers(new Set());
+  if (!s) return { ok: false, reason: "no eligible seller", spent: 0n };
+  if (spentToday() + s.price > BigInt(policy.dailyBudget)) return { ok: false, reason: "daily budget used up", spent: 0n };
+  ui.step("seller", `${pc.bold(await sellerName(s))} ${ui.addr(s.address)}  price ${ui.usdc(s.price)}  ${pc.dim("(cheapest)")}`);
+  const { answer: a } = await buy(s, { address, block: f.block, input: felts }, ih, BigInt(policy.maxCheckPrice));
+  addSpend(s.price);
+  recordJob(a.jobId, s.address, address, "Fulfilled");
+  const job = await getJob(a.jobId);
+  const logit = Number(signedFromFelt(job.output[0])) / 2 ** OUTPUT_SCALE;
+  const risk = 1 / (1 + Math.exp(-logit));
+  ui.step("answer", `risk ${pc.bold(risk.toFixed(4))}  tx ${ui.tx(a.fulfillTx)}`);
+  ui.note(pc.yellow("--trust: proof not checked, answer taken at face value"));
+  return { ok: true, risk, logit, seller: s, jobId: a.jobId, spent: s.price };
+}
+
 /** riskCheck with features already in hand (the indexer's answer, or a test vector in tests). */
 export async function riskCheckWith(f: Features): Promise<CheckResult> {
   const address = f.address;

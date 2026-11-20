@@ -5,6 +5,7 @@
  *   honest sellers                 sellers registered in the escrow
  *   honest check <address>         buy one verified risk score
  *   honest pay <address> <usdc>    risk-check the address, then pay it only if the policy allows
+ *     --trust                      skip verification and believe the seller (a plain x402 buyer, for comparison)
  *   honest finalize                release payment to sellers whose challenge window has passed
  *   honest receipt <jobId>         show a job as recorded onchain
  *   honest balance                 the agent's USDC and today's spend
@@ -13,7 +14,7 @@ import { createInterface } from "node:readline/promises";
 import pc from "picocolors";
 import { getAddress, isAddress, parseUnits, type Address, type Hex } from "viem";
 import { agentAccount, erc20Abi, escrow, getJob, publicClient, signedFromFelt, STATUS, walletClient } from "./chain.ts";
-import { riskCheck } from "./check.ts";
+import { riskCheck, trustingCheck } from "./check.ts";
 import { deployment, OUTPUT_SCALE, policy, receiptsUrl } from "./config.ts";
 import { listSellers } from "./registry.ts";
 import { addSpend, jobs, recordJob, spentToday } from "./state.ts";
@@ -56,16 +57,16 @@ async function confirm(q: string): Promise<boolean> {
   return a.trim() === "yes";
 }
 
-async function cmdPay(target: Address, amountStr: string | undefined) {
+async function cmdPay(target: Address, amountStr: string | undefined, trust: boolean) {
   if (!amountStr) throw new Error("usage: honest pay <address> <amount in USDC>");
   const amount = parseUnits(amountStr, deployment.usdcDecimals);
-  ui.title(`honest pay ${target} ${ui.usdc(amount)}`);
+  ui.title(`honest pay ${target} ${ui.usdc(amount)}${trust ? pc.yellow("  --trust") : ""}`);
 
   if (spentToday() + amount > BigInt(policy.dailyBudget)) {
     ui.decision(false, `payment would exceed the daily budget of ${ui.usdc(BigInt(policy.dailyBudget))}`);
     return;
   }
-  const r = await riskCheck(target);
+  const r = trust ? await trustingCheck(target) : await riskCheck(target);
   if (!r.ok) {
     ui.decision(false, `not paying without a verified risk check (${r.reason})`);
     return;
@@ -159,14 +160,16 @@ async function cmdBalance() {
 }
 
 async function main() {
-  const [cmd, a1, a2] = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const trust = args.includes("--trust");
+  const [cmd, a1, a2] = args.filter((x) => !x.startsWith("--"));
   switch (cmd) {
     case "sellers":
       return cmdSellers();
     case "check":
       return cmdCheck(parseTarget(a1));
     case "pay":
-      return cmdPay(parseTarget(a1), a2);
+      return cmdPay(parseTarget(a1), a2, trust);
     case "finalize":
       return cmdFinalize();
     case "receipt":
@@ -174,7 +177,7 @@ async function main() {
     case "balance":
       return cmdBalance();
     default:
-      console.log("usage: honest sellers | check <address> | pay <address> <usdc> | finalize | receipt <jobId> | balance");
+      console.log("usage: honest sellers | check <address> | pay <address> <usdc> [--trust] | finalize | receipt <jobId> | balance");
       process.exitCode = cmd ? 1 : 0;
   }
 }

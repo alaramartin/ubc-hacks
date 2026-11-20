@@ -1,0 +1,8 @@
+{
+  "note": "Demo config: which sellers run, in which mode. Read by scripts/demo_up.py only; the agent never sees it.",
+  "sellers": [
+    { "name": "RiskOne", "keyEnv": "SELLER_HONEST_KEY", "model": "riskone", "mode": "honest", "port": 8001, "price": 10000 },
+    { "name": "CheapRisk", "model": "cheaprisk", "mode": "edit-output", "port": 8002, "price": 5000, "fresh": true }
+  ],
+  "bond": 500000
+}

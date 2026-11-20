@@ -31,7 +31,7 @@ if (!from) {
   const seed = JSON.parse(readFileSync(join(ROOT, "deployments/demo-wallets.json"), "utf8"));
   from = String(Math.min(seed.startBlock, dep.deployBlock));
 }
-const filter = readFileSync(join(ROOT, "web/stream/filter.js"), "utf8").replace("__ESCROW__", dep.escrow.toLowerCase());
+const filter = readFileSync(join(ROOT, "web/stream/filter.js"), "utf8").replaceAll("__ESCROW__", dep.escrow.toLowerCase());
 const filter_function = Buffer.from(filter).toString("base64");
 
 async function call(method, path, body) {
@@ -52,7 +52,11 @@ const test = await call("POST", "/streams/test_filter", {
   block: String(testBlock),
   filter_function,
 });
-console.log(`test_filter at block ${testBlock}:`, JSON.stringify(test).slice(0, 600));
+const res = test?.result ?? {};
+console.log(
+  `test_filter at block ${testBlock}: ${res.transfers?.length ?? "?"} USDC transfers, ${res.events?.length ?? "?"} escrow events`,
+  JSON.stringify(res.events ?? []).slice(0, 400),
+);
 
 if (process.argv.includes("--test-only")) process.exit(0);
 
