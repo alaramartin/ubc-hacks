@@ -1,49 +1,34 @@
 # zkReceipt
 
-Agents pay for model answers they can't check. Before an agent sends money to an address it can buy a risk score for that address, but nothing tells it whether the score came from the model the seller advertises, or from a cheaper model, or was typed in by hand.
+When you pay for a model through an API, you can't see what runs. You can pay for Opus and be served Haiku. zkReceipt makes AI agents pay for inference into an escrow contract on Arc. The provider only gets paid if a zkSNARK proves its committed model produced the answer.
 
-zkReceipt is an x402 payment layer on Arc where the agent only pays for answers the committed model actually gave:
+1. A provider registers a hash of its secret model weights in `ReceiptEscrow` and posts a USDC bond.
+2. The agent builds its own prompt from a QuickNode Stream index of Arc, then pays through x402. The USDC goes into escrow, not to the provider.
+3. The provider answers with an EZKL proof that its committed weights, run on that prompt, produced the answer.
+4. The agent checks the proof for free with `eth_call`. A good proof pays the provider after a 60 second window. A bad one gets challenged: the contract verifies it, refunds the agent and slashes the provider's bond.
 
-1. A seller registers a hash of its secret model weights in the `ReceiptEscrow` contract and posts a USDC bond.
-2. The agent writes the prompt itself: seven numbers describing the address's USDC history, computed from its own QuickNode Stream index of Arc. This is the same as typing your own prompt to an LLM. The seller's value is the secret model that turns the prompt into an answer.
-3. The agent pays through x402, but the payment goes into escrow, not to the seller.
-4. The seller answers with an EZKL zk proof that the committed weights, run on the agent's prompt, produced the answer. The weights stay secret.
-5. The agent checks the proof for free with `eth_call`. A good answer pays the seller after a 60 second challenge window. A bad one gets challenged: the contract verifies the proof itself, refunds the agent and slashes the seller's bond.
+- Receipts for every job: https://zkreceipt.vercel.app
+- Demo video: (link)
 
-Receipts for every job: https://zkreceipt.vercel.app
+## The demo
 
-## What the demo shows
+The demo product is a paid risk-score API that an agent calls before paying a wallet. Two providers both commit to the RiskOne model. Provider A is honest. Provider B is cheaper and secretly answers with a different model. The agent is never told which one cheats.
 
-Two sellers offer the same risk check. RiskOne is honest and charges 0.01 USDC. CheapRisk charges 0.005 USDC and edits its scores to say "safe". The agent is never told which one cheats.
-
-A plain x402 buyer (`zkr pay --trust`) asks the cheapest seller about a drainer wallet, gets a score of 0.005 and pays the drainer 0.05 USDC ([tx](https://testnet.arcscan.app/tx/0x684a51aaae74f8d8eadfb90f644ef940b450c27905cb2e094d257159900f8e44)).
-
-The zkReceipt agent (`zkr pay`) asks the same seller about the same wallet:
+A plain x402 buyer (`zkr pay --trust`) pays Provider B and never finds out. The zkReceipt agent (`zkr pay`) pays Provider B into escrow, sees the proof fail, challenges it, gets refunded, then moves on to Provider A:
 
 ```
-seller       CheapRisk 0x9872…b758  price 0.005 USDC  bond 0.5 USDC  (cheapest of 2 eligible)
-answer       risk 0.0050 (logit -5.29)  proof 3,840 bytes, proved in 2.51s
-verify       proof does NOT match commitment + our prompt + posted output  eth_call, 83 ms
-challenge    onchain verify failed: refunded 0.005 USDC, seller bond slashed 0.25 USDC  754,767 gas
-seller       RiskOne 0x5B95…9c4D  price 0.01 USDC  bond 0.5 USDC  (cheapest of 1 eligible)
-answer       risk 0.9999 (logit 9.59)  proof 3,840 bytes, proved in 2.36s
-verify       proof checks out against commitment, our prompt and the posted output  eth_call, 88 ms, no gas
+seller       Provider B 0x2339…6D82  price 0.005 USDC  bond 0.5 USDC  (cheapest of 2 eligible)
+verify       proof does NOT match commitment + our prompt + posted output  eth_call, 154 ms
+challenge    onchain verify failed: refunded 0.005 USDC, seller bond slashed 0.25 USDC  754,935 gas
+seller       Provider A 0x5B95…9c4D  price 0.01 USDC  bond 0.5 USDC  (cheapest of 1 eligible)
+verify       proof checks out against commitment, our prompt and the posted output  eth_call, 154 ms, no gas
 
- REFUSE  proven risk 0.9999 is at or above 0.5; 0.05 USDC stays in the agent's wallet
+ PAY  proven risk 0.0000 is below 0.5; paid 0.05 USDC
 ```
 
-Transactions from that run: [challenge and slash](https://testnet.arcscan.app/tx/0x25c244fdd6edf0e962f1ddbb48abb855085e17f39ed63bcce4f8678cf4be4b55), [RiskOne's answer](https://testnet.arcscan.app/tx/0xfd89a3b9bb0b73c426be072c7f091e45dce9902c40f76ea40dbc65b9b1fb008d), [receipt page](https://zkreceipt.vercel.app/r/0x6525a70eee69305533a6282054c722e3a80121f9704d42ba59f74c793fbdc306).
+Transactions from that run: [challenge and slash](https://testnet.arcscan.app/tx/0x4874f8f09b6c23666fbf1a9f86f5fba54fdc8c9b29860b7be02374a6aff0e024), [Provider A's answer](https://testnet.arcscan.app/tx/0x89e68815e4453bf9bd81dea201011f0aec836c18fa2468974e81946cac2ab121), [payment](https://testnet.arcscan.app/tx/0x0dddde90b0018e8aaa6cc0ae004faa07232a15977bcf56a4466f917509690823), and receipts for [Provider B](https://zkreceipt.vercel.app/r/0x805da37df0e9d1aefc3ea50b63812c6729c30dd50edd7846f75c586bc777941b) and [Provider A](https://zkreceipt.vercel.app/r/0x841b0d84e42b12c4368b7ad77dfc60700915252bc4c247d78e90a2bb6bc6f617).
 
-The seller has four modes, picked when the process starts, and each one is a real code path:
-
-| Mode | What the seller does | What happens |
-|---|---|---|
-| `honest` | Runs the committed model on the agent's prompt | Proof verifies, seller is paid |
-| `edit-output` | Proves honestly, then posts a different score | Proof fails against the posted output, slashed |
-| `swap-model` | Runs a cheaper model with the same architecture | Proof fails against the committed weights, slashed |
-| `fake-input` | Changes some of the agent's prompt before proving | Proof fails against the agent's prompt hash, slashed |
-
-All four were run against Arc testnet. A `swap-model` seller gets slashed even when its answer happens to match, because what's checked is which model produced it, not the number.
+The provider picks a mode when it starts: `honest`, `edit-output` (changes the score after proving), `swap-model` (runs a cheaper model) or `fake-input` (changes the agent's prompt). All four were run on Arc testnet, and the three cheating modes were slashed.
 
 ## Architecture
 
@@ -54,7 +39,7 @@ All four were run against Arc testnet. A `swap-model` seller gets slashed even w
   web/ on Vercel: /api/streams ──► Neon Postgres ──► /api/features/:address
                                          │                   │
                                          ▼                   ▼
-                                  /r/<jobId> receipts    agent/ (zkr CLI)  
+                                  /r/<jobId> receipts    agent/ (zkr CLI)
                                                              │ x402: 402, then X-PAYMENT
                                                              ▼
                                                    seller/ (FastAPI + EZKL)
@@ -65,96 +50,79 @@ All four were run against Arc testnet. A `swap-model` seller gets slashed even w
 
 | Part | Directory | Stack |
 |---|---|---|
-| Model, simulator, EZKL pipeline | `model/` | Python, PyTorch, ONNX, EZKL 23.0.5 |
-| Seller server | `seller/` | FastAPI, web3.py, EZKL |
+| Model and EZKL pipeline | `model/` | Python, PyTorch, ONNX, EZKL 23.0.5 |
+| Provider server | `seller/` | FastAPI, web3.py, EZKL |
 | Escrow and verifier contracts | `contracts/` | Solidity 0.8.24, Foundry |
 | Buyer agent | `agent/` | TypeScript, viem |
 | Stream receiver, features API, receipts | `web/` | Next.js 16 on Vercel, Neon Postgres |
-| Shared definitions | `spec/` | `features.json`, `vectors.json`, `instances.md` |
+| Shared definitions | `spec/` | features, test vectors, EZKL instance layout |
 
-### Contracts on Arc testnet (chain 5042002)
+The model is a small MLP (7→16→8→1). EZKL proves it with the weights hashed and the prompt and output public. A proof is 3,840 bytes and takes about 3 s on a laptop. The verifying key depends only on the circuit, so every provider with this architecture shares one verifier, and the commitment each one registered is what tells them apart.
+
+## Contracts on Arc testnet (chain 5042002)
 
 | Contract | Address | What it does |
 |---|---|---|
-| `ReceiptEscrow` | [`0xb292Ca92b5Cc6f621Ca15f2eb05f5066305b2905`](https://testnet.arcscan.app/address/0xb292Ca92b5Cc6f621Ca15f2eb05f5066305b2905) | Seller registry with bonds, x402 escrow, challenge and slash |
-| `Halo2Verifier` | [`0xAa0B5BABb4E8A9f189712690457bDF30aFC9777f`](https://testnet.arcscan.app/address/0xAa0B5BABb4E8A9f189712690457bDF30aFC9777f) | EZKL-generated verifier for the risk model's circuit |
-| USDC | `0x3600000000000000000000000000000000000000` | Arc's native USDC (ERC-20 interface, EIP-3009) |
-
-Everything is paid in USDC, which is also Arc's gas token, so the agent holds one asset. A verified proof costs about 735k gas, a challenge about 755k, roughly 0.02 USDC at testnet prices.
+| `ReceiptEscrow` | [`0xb292Ca92b5Cc6f621Ca15f2eb05f5066305b2905`](https://testnet.arcscan.app/address/0xb292Ca92b5Cc6f621Ca15f2eb05f5066305b2905) | Provider registry with bonds, x402 escrow, challenge and slash |
+| `Halo2Verifier` | [`0xAa0B5BABb4E8A9f189712690457bDF30aFC9777f`](https://testnet.arcscan.app/address/0xAa0B5BABb4E8A9f189712690457bDF30aFC9777f) | EZKL-generated verifier for the model's circuit |
+| USDC | `0x3600000000000000000000000000000000000000` | Arc's native USDC |
 
 How a job moves through `ReceiptEscrow`:
 
-- `registerSeller(commitment, price, bond, endpoint)` pulls the bond. The commitment is EZKL's Poseidon hash of the weights.
-- `open(seller, inputHash, deadline, auth)` pulls the price with `receiveWithAuthorization`. The authorization's nonce is `keccak256(chainId, escrow, seller, inputHash, deadline)`, so the agent's signature only works for that seller, that input and that deadline. The seller can't change the terms after the agent signs.
-- `fulfill(jobId, input, output, proof)` checks that the prompt (`input`) matches the hash the agent paid for, then stores the output and the proof hash. The prompt goes onchain in the event, so anyone can re-verify or challenge, not only the buyer.
-- `finalize(jobId)` pays the seller once the challenge window has passed.
-- `challenge(jobId, input, proof)` builds the public instances from storage (commitment, prompt, output) and calls the verifier with a fixed 3M gas. A challenge sent with too little gas reverts, so nobody can fake a failed verification by starving the call. A valid proof makes the challenge revert. An invalid one refunds the buyer, pays part of the bond to the challenger and marks the seller slashed for good.
-- `refund(jobId)` returns the payment if the seller never answers before the deadline.
+- `registerSeller` takes the model commitment and pulls the bond.
+- `open` pulls the payment with an EIP-3009 authorization whose nonce binds the provider, the prompt hash and the deadline, so the terms can't change after the agent signs.
+- `fulfill` stores the prompt, the output and the proof hash.
+- `finalize` pays the provider once the 60 second window has passed. `refund` returns the payment if the provider never answers.
+- `challenge` rebuilds the public inputs from storage and calls the verifier with a fixed 3M gas, so nobody can fake a failure by starving the call. A bad proof refunds the buyer and slashes the bond. A valid proof makes the challenge revert.
 
-`forge test` runs 17 tests covering each of these, including the gas-starved challenge, a proof over a different prompt, a different model and a tampered output, all against a real proof fixture from `model/`.
-
-### The proof
-
-The model is a 7→16→8→1 MLP (ReLU). EZKL proves the logit, and readers apply the sigmoid. With hashed parameters and a public prompt and output, the public instances are `[weights hash, 7 prompt values, 1 output]` as BN254 field elements, at fixed-point scale 2^13. Proving takes about 3 s on a laptop and the proof is 3,840 bytes.
-
-The verifying key depends only on the circuit, not the weights, so every seller using this architecture shares one verifier contract. What tells sellers apart is the commitment each one registered. See `spec/instances.md` for the encoding.
-
-The model is trained on a simulator of seven wallet behaviours (normal user, merchant, exchange hot wallet, payroll, fresh wallet, drainer, launderer). The simulated classes are easy to separate, and test accuracy is about 0.9997. That says the pipeline works, not that this model would catch real drainers. A real seller would bring a real model, and the protocol doesn't change.
+USDC is also Arc's gas token, so the agent holds one asset for payments, bonds and gas. A challenge costs about 755k gas, roughly 0.02 USDC. `forge test` covers every state change against a real proof fixture.
 
 ## QuickNode Streams
 
-The agent writes the model's prompt itself, so it needs its own view of who sent USDC to whom. That view comes from a QuickNode Stream, which is also what the receipt pages read escrow events from.
+The agent writes the model's prompt itself, so it needs its own record of who sent USDC to whom. A QuickNode Stream provides it, and the receipt pages read escrow events from the same Stream.
 
 | Setting | Value |
 |---|---|
 | Network | `arc-testnet` |
 | Dataset | `logs` |
-| Start | block 73,010,098 (start of demo seeding), then live |
 | Filter | `web/stream/filter.js` |
-| Destination | Webhook to `https://zkreceipt.vercel.app/api/streams`, HMAC-signed with a shared secret |
-| Created by | `scripts/create-stream.mjs` (runs `test_filter` on a real block first) |
+| Destination | Webhook to `https://zkreceipt.vercel.app/api/streams`, HMAC-signed |
+| Created by | `scripts/create-stream.mjs` |
 
-The agent, the sellers and the scripts also use a QuickNode Arc testnet endpoint as their RPC. The receipt pages use Arc's public RPC, so no endpoint token reaches the browser.
+The filter keeps two kinds of log:
 
-The filter keeps two kinds of log and drops everything else:
+- USDC `Transfer` logs from Arc's native emitter. Every USDC movement on Arc emits one there, including gas-token transfers, so reading only the emitter counts each transfer once.
+- Every log from `ReceiptEscrow`, for the receipt pages.
 
-- **USDC `Transfer` logs from Arc's native emitter `0xff…fe`.** On Arc every USDC movement emits a log from this system address, including native gas-token transfers. An ERC-20 call also emits a copy from the USDC contract, so the filter reads only the emitter and nothing is counted twice. Values are converted from 18 decimals to USDC's 6.
-- **Every log from `ReceiptEscrow`**, kept raw. The receipt pages decode them.
-
-Each batch comes back as one compact object with its block range, including empty batches. `/api/streams` checks the signature, stores transfers and events in Neon, and records the range, so the features API knows which block it has fully synced (the highest block with no gaps below it). `/api/features/:address` computes the seven features that make up the prompt, as defined in `spec/features.json`, at that block.
-
-The Python simulator and the TypeScript indexer both implement `spec/features.json`. Both run against `spec/vectors.json` (44 checks over 799 transfers), because a one-unit difference in a quantized feature makes an honest proof fail.
+`/api/streams` stores them in Neon and tracks the highest block synced with no gaps. `/api/features/:address` computes the seven prompt features at that block, as defined in `spec/features.json`.
 
 ## The agent's decision loop
 
 `zkr pay <address> <amount>` runs this, with every limit read from `agent/policy.json`:
 
 1. Refuse if the payment would go over the daily budget.
-2. Build the prompt: get the address's seven features from the Stream-fed index and quantize them.
-3. Pick the cheapest seller that is registered, not slashed, has at least the minimum bond and charges at most the maximum check price.
-4. Request the risk check. On the 402, check every field against the chain and the request: scheme, network, escrow address, asset, seller, commitment, price, prompt hash, verifier, deadline and the job nonce. Refuse to sign if anything differs.
-5. Sign an EIP-3009 authorization for exactly that price into escrow, and send it.
-6. Read the job back from the chain. Judge what the seller posted onchain, not what it said over HTTP, and check the proof bytes against the stored hash.
-7. Verify the proof with `eth_call` against the commitment, the agent's own prompt and the posted output.
-8. If it fails, challenge onchain, get refunded, and go back to step 3 without that seller, up to 3 sellers.
-9. If it verifies, pay the address only if the proven risk is below the threshold, and ask a human first if the amount is above the approval limit.
+2. Build the prompt from the address's features in the Stream index.
+3. Pick the cheapest provider that is registered, not slashed, has the minimum bond and is under the price cap.
+4. On the 402, check every payment field against the chain. Refuse to sign if anything differs.
+5. Sign an EIP-3009 authorization for exactly that price into escrow.
+6. Read the job back from the chain and verify the proof with `eth_call`.
+7. If the proof fails, challenge, get refunded and try the next provider (up to 3).
+8. If it verifies, pay the address only if the proven risk is below the threshold, and ask a human first above the approval limit.
 
 | Limit | Value |
 |---|---|
 | `riskThreshold` | 0.5 |
 | `maxCheckPrice` | 0.02 USDC |
 | `minSellerBond` | 0.5 USDC |
-| `dailyBudget` | 2 USDC (checks and payments together) |
+| `dailyBudget` | 2 USDC |
 | `approvalAbove` | 1 USDC needs a typed "yes" |
 | `maxSellerAttempts` | 3 |
 
-The agent has no list of good or bad sellers or addresses. It learns that a seller cheats only from a failed proof. `zkr finalize` releases payment for jobs whose window has passed, and refunds jobs a seller took but never answered.
+The agent has no list of good or bad providers. It learns that one cheats only from a failed proof.
 
 ## Running it
 
-Needs Python 3.12 with `uv`, Node 24 with `pnpm`, Foundry and `solc` 0.8.24. Copy `.env.example` to `.env` and fill it in.
-
-Every command starts from the repo root.
+Needs Python 3.12 with `uv`, Node 24 with `pnpm`, Foundry and `solc` 0.8.24. Copy `.env.example` to `.env` and fill it in. Every command starts from the repo root.
 
 ```sh
 # model: train both models, build circuits, keys and the verifier
@@ -173,7 +141,7 @@ scripts/deploy.sh
 (cd web && pnpm i && pnpm db:migrate && vercel deploy --prod)
 node --env-file=.env scripts/create-stream.mjs --webhook https://<app>/api/streams
 
-# sellers from deployments/demo.json (makes a fresh cheater if the last one was slashed)
+# providers from deployments/demo.json
 (cd seller && uv run python ../scripts/demo_up.py)
 
 # agent, in another terminal
@@ -184,11 +152,10 @@ pnpm zkr pay <address> 0.05
 pnpm zkr finalize
 ```
 
-Seller weights (`weights.pt`, `network.onnx`, `network.ezkl`, `pk.key`) are never committed, since keeping them secret is the point. `settings.json`, `vk.key`, `Verifier.sol` and `commitment.json` are in the repo.
+Provider weights (`weights.pt`, `network.onnx`, `network.ezkl`, `pk.key`) are never committed, since keeping them secret is the point.
 
 ## Limits
 
-- EZKL proves small models. Anthropic's FlashProve shows LLM inference can be proven too, but at about 19 MB per 1,024 tokens, too large to verify onchain. The escrow only needs a commitment and a verifier contract, so a cheaper LLM proof system could use it unchanged.
-- The proof shows which model produced the answer, not that the model is any good.
-- "First seen" for a counterparty means first seen in the indexed range, which starts at the demo seeding block.
-- The challenge window is 60 seconds and the amounts are tiny (0.5 USDC bonds) so the demo fits on stage.
+- EZKL proves small models. FlashProve proves LLM inference, but at about 19 MB per 1,024 tokens it's too large to verify onchain. The escrow only needs a commitment and a verifier, so a smaller LLM proof could use it unchanged.
+- The proof shows which model produced the answer, not that the model is any good. The demo model is trained on simulated wallets.
+- The 60 second window and tiny amounts are sized for a live demo.
